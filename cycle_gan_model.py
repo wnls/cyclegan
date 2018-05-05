@@ -22,7 +22,7 @@ class CycleGANModel:
 		self.cycle_loss_fn = torch.nn.L1Loss()
 
 
-	def optimize_parameters():
+	def train(self, input):
 		# loss
 		loss_G_A
 		loss_G_B
@@ -33,6 +33,7 @@ class CycleGANModel:
 		# update
 		self.optimizer_G.step()
 		self.optimizer_D.step()
+
 
 
 class Generator(nn.Module):

@@ -2,7 +2,8 @@ import os
 
 import argparse
 
-import data
+import dataloader
+from cycle_gan_model import CycleGANModel
 
 parser = argparse.ArgumentParser()
 # Model
@@ -45,8 +46,8 @@ if __name__ == "__main__":
 
   	# load data
   	if args.mode == "train":
-  		train_loader = data.create_dataloader(args.train_A_dir, ars.train_B_dir, args.batch_size)
-  		val_loader = data.create_dataloader(args.val_A_dir, ars.val_B_dir, args.batch_size)
+  		train_loader = dataloader.get_dataloader(args.train_A_dir, ars.train_B_dir, args.batch_size)
+  		val_loader = dataloader.get_dataloader(args.val_A_dir, ars.val_B_dir, args.batch_size)
   		
   	if args.mode == "test":
   		# test_loader
@@ -72,13 +73,16 @@ if __name__ == "__main__":
 	if args.mode == "train":
 		for e in range(args.n_epoch):
 			print("\n\n==== Epoch {:d} ====".format(e+1))
-			for i, batch in enumerate(loader):
+			for i, images in enumerate(loader):
 
-      			model.set_input(batch)
-      			model.optimize_parameters()
+      			model.train(images)
       			# update stats
 
       		# save model
+          
+  if args.mode == "test":
+    for i, images in enumerate(loader):
+      model.test(images)
 
 
 

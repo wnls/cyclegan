@@ -11,7 +11,7 @@ class GANDataset(Dataset):
 
 
 ## return - DataLoader
- def create_dataloader(args):
+ def get_dataloader(args):
 
  	return DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=pad_collate_fn)
     	
