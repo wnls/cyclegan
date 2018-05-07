@@ -1,4 +1,6 @@
 *.h5
 *.npy
+*/*.pyc
+.idea/
 datasets/
 checkpoints/
