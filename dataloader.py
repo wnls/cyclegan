@@ -2,6 +2,7 @@ import os
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from PIL import Image
+from random import randint
 
 
 class GANDataset(Dataset):
@@ -22,7 +23,7 @@ class GANDataset(Dataset):
 
         # unaligned the paired images if needed
         if self.unaligned:
-            image_pathB = self.image_pathsB[np.random.randint(0, len(self.image_pathsB)-1)]
+            image_pathB = self.image_pathsB[randint(0, len(self.image_pathsB)-1)]
         else:
             image_pathB = self.image_pathsB[index]
             

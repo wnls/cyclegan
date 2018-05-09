@@ -22,6 +22,15 @@ class CycleGANModel:
         self.gan_loss_fn = torch.nn.MSELoss()
         self.cycle_loss_fn = torch.nn.L1Loss()
 
+        self.lambda_A = args.lambda_A
+        self.lambda_B = args.lambda_B
+
+
+    def to(self, device):
+        self.G_A.to(device)
+        self.G_B.to(device)
+        self.D_A.to(device)
+        self.D_B.to(device)
 
     def train(self, input):
         self.G_A.train()
@@ -31,22 +40,68 @@ class CycleGANModel:
 
         A, B = input
 
-        # loss
-        B_gen, loss_G_A, loss_G_B, loss_D_A, loss_D_B =  self.compute_loss(A, B)
+        B_gen = self.G_A(A)
+        A_cyc = self.G_B(B_gen)
+        A_gen = self.G_B(B)
+        B_cyc = self.G_A(A_gen)
 
-        # backward and update
-        self.optimizer_G.zero_grad()
-        loss_G = loss_G_A + loss_G_B
-        loss_G.backward()
+        ############################
+        # G loss
+        ############################
+
+        # GAN loss D_A(G_A(A))
+        loss_G_A = self.gan_loss(self.D_A(B_gen), 1)
+        # GAN loss D_B(G_B(B))
+        loss_G_B = self.gan_loss(self.D_B(A_gen), 1)
+        # Forward cycle loss
+        loss_cyc_A = self.cycle_loss_fn(A_cyc, A) * self.lambda_A
+        # Backward cycle loss
+        loss_cyc_B = self.cycle_loss_fn(B_cyc, B) * self.lambda_B
+        # Combine
+        loss_G = loss_G_A + loss_G_B + loss_cyc_A + loss_cyc_B
+
+        loss_G.backward(retain_graph=True)
         self.optimizer_G.step()
 
-        self.optimizer_D.zero_grad()
-        loss_D_A.backward()
-        loss_D_B.backward()
+        ############################
+        # D loss
+        ############################
+
+        #TODO: redo foward pass using updated weights or use retain graph?
+        #TODO: D fake loss use pool
+        #
+        loss_D_A_real = self.gan_loss(self.D_A(B), 1)
+        loss_D_A_fake = self.gan_loss(self.D_A(B_gen), 0)
+        loss_D_A = loss_D_A_real + loss_D_A_fake
+
+        loss_D_B_real = self.gan_loss(self.D_B(A), 1)
+        loss_D_B_fake = self.gan_loss(self.D_B(A_gen), 0)
+        loss_D_B = loss_D_B_real + loss_D_B_fake
+
+        #TODO can add?
+        loss_D = (loss_D_A + loss_D_B) * 0.5
+        loss_D.backward()
         self.optimizer_D.step()
 
-        return {'G_A': loss_G_A, 'G_B': loss_G_B, 'D_A': loss_D_A, 'D_B': loss_D_B,
-                'total': loss_G_A+loss_G_B+loss_D_A+loss_D_B}
+        # TODO batch avg?
+
+        # # loss
+        # B_gen, loss_G_A, loss_G_B, loss_D_A, loss_D_B =  self.compute_loss(A, B)
+        #
+        # # backward and update
+        # self.optimizer_G.zero_grad()
+        # loss_G = loss_G_A + loss_G_B
+        # loss_G.backward()
+        # self.optimizer_G.step()
+        #
+        # self.optimizer_D.zero_grad()
+        # loss_D = loss_D_A + loss_D_B
+        # loss_D.backward()
+        # # loss_D_B.backward()
+        # self.optimizer_D.step()
+
+        return {'G': loss_G, 'G_A': loss_G_A, 'G_B': loss_G_B, 'Cyc_A': loss_cyc_A, 'Cyc_B': loss_cyc_B,
+                'D': loss_D, 'D_A': loss_D_A, 'D_B': loss_D_B}
 
     def eval(self, input):
         self.G_A.eval()
@@ -55,28 +110,65 @@ class CycleGANModel:
         self.D_B.eval()
 
         A, B = input
-        B_gen, loss_G_A, loss_G_B, loss_D_A, loss_D_B = self.compute_loss(A, B)
+
+        B_gen = self.G_A(A)
+        A_cyc = self.G_B(B_gen)
+        A_gen = self.G_B(B)
+        B_cyc = self.G_A(A_gen)
+
+        ############################
+        # G loss
+        ############################
+
+        # GAN loss D_A(G_A(A))
+        loss_G_A = self.gan_loss(self.D_A(B_gen), 1)
+        # GAN loss D_B(G_B(B))
+        loss_G_B = self.gan_loss(self.D_B(A_gen), 1)
+        # Forward cycle loss
+        loss_cyc_A = self.cycle_loss_fn(A_cyc, A) * self.lambda_A
+        # Backward cycle loss
+        loss_cyc_B = self.cycle_loss_fn(B_cyc, B) * self.lambda_B
+        # Combine
+        loss_G = loss_G_A + loss_G_B + loss_cyc_A + loss_cyc_B
+
+
+        ############################
+        # D loss
+        ############################
+
+        loss_D_A_real = self.gan_loss(self.D_A(B), 1)
+        loss_D_A_fake = self.gan_loss(self.D_A(B_gen), 0)
+        loss_D_A = loss_D_A_real + loss_D_A_fake
+
+        loss_D_B_real = self.gan_loss(self.D_B(A), 1)
+        loss_D_B_fake = self.gan_loss(self.D_B(A_gen), 0)
+        loss_D_B = loss_D_B_real + loss_D_B_fake
+
+        loss_D = (loss_D_A + loss_D_B) * 0.5
 
         # TODO save B_gen
 
-        return {'G_A': loss_G_A, 'G_B': loss_G_B, 'D_A': loss_D_A, 'D_B': loss_D_B,
-                'total': loss_G_A + loss_G_B + loss_D_A + loss_D_B}
+        return {'G': loss_G, 'G_A': loss_G_A, 'G_B': loss_G_B, 'Cyc_A': loss_cyc_A, 'Cyc_B': loss_cyc_B,
+                'D': loss_D, 'D_A': loss_D_A, 'D_B': loss_D_B}
 
     def compute_loss(self, A, B):
         B_gen = self.G_A(A)
         A_cyc = self.G_B(B_gen)
-        loss_G_A = self.gan_loss_fn(self.D_A(B_gen), torch.ones_like(B)) + self.cycle_loss_fn(A_cyc, A)  # TODO lambda_a
-
         A_gen = self.G_B(B)
         B_cyc = self.G_A(A_gen)
-        loss_G_B = self.gan_loss_fn(self.D_B(A_gen), torch.ones_like(A)) + self.cycle_loss_fn(B_cyc, B)  # TODO lambda_b
 
-        loss_D_A = self.gan_loss_fn(self.D_A(B), torch.ones_like(A)) + self.gan_loss_fn(self.D_A(B_gen),
-                                                                                        torch.zeros_like(
-                                                                                            A))  # TODO *0.5
-        loss_D_B = self.gan_loss_fn(self.D_B(A), torch.ones_like(A)) + self.gan_loss_fn(self.D_B(A_gen),
-                                                                                        torch.zeros_like(A))
+
+        loss_G_A = self.gan_loss(self.D_A(B_gen), 1) + self.cycle_loss_fn(A_cyc, A) * self.lambda_A
+
+
+        loss_G_B = self.gan_loss(self.D_B(A_gen), 1) + self.cycle_loss_fn(B_cyc, B) * self.lambda_B
+
+        loss_D_A = self.gan_loss(self.D_A(B), 1) + self.gan_loss(self.D_A(B_gen), 0) * 0.5 # TODO
+        loss_D_B = self.gan_loss(self.D_B(A), 1) + self.gan_loss(self.D_B(A_gen), 0)
         return B_gen, loss_G_A, loss_G_B, loss_D_A, loss_D_B
+
+    def gan_loss(self, out, label):
+        return self.gan_loss_fn(out, torch.ones_like(out) if label else torch.zeros_like(out))
 
     def load_state(self, state, lr=None):
         print('Using pretrained model...')
