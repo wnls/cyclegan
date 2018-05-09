@@ -54,7 +54,7 @@ def Deconv_Norm_ReLU(in_channel, out_channel, kernel, padding=0, output_padding=
     :input (N x in_channel x H x W)
     :return size same as nn.ConvTranspose2D
     """
-    norm_layer, relu_layer = norm_relu_layer(out_channel, norm, relu='None')
+    norm_layer, relu_layer = norm_relu_layer(out_channel, norm, relu=None)
     return nn.Sequential(
         nn.ConvTranspose2d(in_channel, out_channel, kernel, padding=padding, output_padding=output_padding,
                            stride=stride, groups=groups, bias=bias, dilation=dilation),
@@ -80,7 +80,7 @@ class ResidualLayer(nn.Module):
         self.padding = (self.kernel_size[0] - 1) // 2
         self.final_relu = final_relu
 
-        norm_layer, relu_layer = norm_relu_layer(self.channels, norm, relu='None')
+        norm_layer, relu_layer = norm_relu_layer(self.channels, norm, relu=None)
         self.layers = nn.Sequential(
             nn.Conv2d(self.channels, self.channels, self.kernel_size, padding=self.padding, bias=bias),
             norm_layer,
