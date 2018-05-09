@@ -42,12 +42,12 @@ class GANDataset(Dataset):
 
 
 ## return - DataLoader, batch dimension in (batch_size, channel, H, W)
-def get_dataloader(image_pathA, image_pathB, batch_size, image_size=(256, 256), unaligned=False):
+def get_dataloader(image_pathA, image_pathB, batch_size, resize, crop, unaligned=False):
     transform = transforms.Compose([
         # resize PIL image to given size
-        transforms.Resize(image_size),
+        transforms.Resize(resize, Image.BICUBIC),
         # crop image at randomn location
-        transforms.RandomCrop(image_size),
+        transforms.RandomCrop(crop),
         # flip images randomly
         transforms.RandomHorizontalFlip(),
         # convert image input into torch tensor
