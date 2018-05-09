@@ -4,6 +4,9 @@ import time
 import argparse
 import json
 
+from visdom import Visdom
+import numpy as np
+
 import torch
 import dataloader
 from model.cycle_gan_model import CycleGANModel
@@ -61,6 +64,29 @@ if __name__ == "__main__":
     if args.mode == "test":
         test_loader = dataloader.get_dataloader(args.test_A_dir, args.test_B_dir, batch_size=args.batch_size, unaligned=args.unaligned)
 
+    if args.vis:
+        if args.port:
+            viz = Visdom(port=int(args.port))
+        else:
+            viz = Visdom()
+
+        startup_sec = 1
+        while not viz.check_connection() and startup_sec > 0:
+            time.sleep(0.1)
+            startup_sec -= 0.1
+        assert viz.check_connection(), 'No connection could be formed quickly'
+
+        win_train_G = viz.line(X=np.asarray([0]), Y=np.asarray([0]))
+        win_train_D = viz.line(X=np.asarray([0]), Y=np.asarray([0]))
+        win_train_tot = viz.line(X=np.asarray([0]), Y=np.asarray([0]))
+        win_eval_G  = viz.line(X=np.asarray([0]), Y=np.asarray([0]))
+        win_eval_D  = viz.line(X=np.asarray([0]), Y=np.asarray([0]))
+        win_eval_tot  = viz.line(X=np.asarray([0]), Y=np.asarray([0]))
+        # print('train window id =', win_train)
+        # print('eval window id =', win_eval)
+    else:
+        viz = None
+
     model = CycleGANModel(args)
 
     # use pretrain
@@ -82,6 +108,9 @@ if __name__ == "__main__":
         stats = {}
         stats['train_loss'] = {}
         stats['val_loss'] = {}
+
+        train_iter = 0
+        eval_iter = 0
         for epoch in range(start_epoch, start_epoch + args.n_epoch):
             print("\n==== Epoch {:d} ====".format(epoch))
 
@@ -90,6 +119,19 @@ if __name__ == "__main__":
                 A, B = A.to(device), B.to(device)
 
                 loss = model.train((A, B))
+
+                # visualize train loss
+                if viz:
+                    viz.line(X=np.asarray([train_iter]), Y = np.asarray([loss['G_A']]), name='G_A', win=win_train_G)
+                    viz.line(X=np.asarray([train_iter]), Y = np.asarray([loss['G_B']]), name='G_B', win=win_train_G)
+                    viz.line(X=np.asarray([train_iter]), Y = np.asarray([loss['Cyc_A']]), name='Cyc_A', win=win_train_G)
+                    viz.line(X=np.asarray([train_iter]), Y = np.asarray([loss['Cyc_B']]), name='Cyc_B', win=win_train_G)
+                    viz.line(X=np.asarray([train_iter]), Y = np.asarray([loss['G']]), name='G', win=win_train_G)
+
+                    viz.line(X=np.asarray([train_iter]), Y=np.asarray([loss['D_A']]), name='D_A', win=win_train_D)
+                    viz.line(X=np.asarray([train_iter]), Y=np.asarray([loss['D_B']]), name='D_B', win=win_train_D)
+                    viz.line(X=np.asarray([train_iter]), Y=np.asarray([loss['D']]), name='D', win=win_train_D)
+                train_iter += 1
 
                 # update stats
                 s = ""
@@ -108,6 +150,19 @@ if __name__ == "__main__":
             # val_loss = {'G_A': 0, 'G_B': 0, 'D_A': 0, 'D_B': 0, 'total': 0}
             for i, images in enumerate(val_loader):
                 loss = model.eval(images)
+
+                # visualize eval loss
+                if viz:
+                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['G_A']]), name='G_A', win=win_eval_G)
+                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['G_B']]), name='G_B', win=win_eval_G)
+                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['Cyc_A']]), name='Cyc_A', win=win_eval_G)
+                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['Cyc_B']]), name='Cyc_B', win=win_eval_G)
+                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['G']]), name='G', win=win_eval_G)
+
+                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['D_A']]), name='D_A', win=win_eval_D)
+                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['D_B']]), name='D_B', win=win_eval_D)
+                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['D']]), name='D', win=win_eval_D)
+                eval_iter += 1
 
                 s = ""
                 for k, v in loss.items():

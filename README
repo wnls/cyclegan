@@ -1,0 +1,5 @@
+Clone https://github.com/facebookresearch/visdom.git and run
+```
+pip install -e .
+```
+in that directory first.
