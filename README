@@ -2,4 +2,10 @@ Clone https://github.com/facebookresearch/visdom.git and run
 ```
 pip install -e .
 ```
-in that directory first.
+in that directory first before running.
+
+## How to Enable Visualization
+
+1. run `python -m visdom.server [-port xxxx]`
+
+2. run `python main.py --vis [--port xxxx]`

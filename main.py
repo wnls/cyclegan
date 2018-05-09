@@ -38,8 +38,9 @@ parser.add_argument('--train_A_dir', default='./datasets/maps/trainA', type=str)
 parser.add_argument('--train_B_dir', default='./datasets/maps/trainB', type=str)
 parser.add_argument('--val_A_dir', default='./datasets/maps/valA', type=str)
 parser.add_argument('--val_B_dir', default='./datasets/maps/valB', type=str)
-
-
+# Visualization
+parser.add_argument('--vis', default=False, action='store_true')
+parser.add_argument('--port', default=8097, type=int)
 
 
 if __name__ == "__main__":
