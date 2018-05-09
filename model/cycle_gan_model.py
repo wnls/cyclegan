@@ -193,6 +193,8 @@ class CycleGANModel:
     def save_state(self):
         return {'G_A': self.G_A.state_dict(),
                 'G_B': self.G_B.state_dict(),
+                'D_A': self.D_A.state_dict(),
+                'D_B': self.D_B.state_dict(),
                 'optimG': self.optimizer_G.state_dict(),
                 'optimD': self.optimizer_D.state_dict()}
 

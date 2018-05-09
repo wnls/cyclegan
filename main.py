@@ -15,8 +15,6 @@ parser.add_argument('--img_size', default=256, type=bool)
 
 # Training
 parser.add_argument('--mode', default="train", type=str)
-parser.add_argument('--start_epoch', default=1, type=int)
-parser.add_argument('--use_pretrain', default=0, type=int)
 parser.add_argument('--pretrain_path', default='', type=str)
 parser.add_argument('--print_every_train', default=1, type=int)
 parser.add_argument('--print_every_val', default=1, type=int)
@@ -68,7 +66,8 @@ if __name__ == "__main__":
     # use pretrain
     start_epoch = 1
     if args.pretrain_path:
-        if args.mode == 'train' and args.use_pretrain:
+        print("Loading model from %s, mode: %s" % (args.pretrain_path, args.mode))
+        if args.mode == 'train':
             # TODO load GPU model on CPU
             checkpoint = torch.load(args.pretrain_path)
             start_epoch = checkpoint['epoch'] + 1
