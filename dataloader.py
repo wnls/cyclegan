@@ -23,7 +23,7 @@ class GANDataset(Dataset):
 
         # unaligned the paired images if needed
         if self.unaligned:
-            image_pathB = self.image_pathsB[randint(0, len(self.image_pathsB)-1)]
+            image_pathB = self.image_pathsB[randint(0, len(self.image_pathsB))]
         else:
             image_pathB = self.image_pathsB[index]
             
