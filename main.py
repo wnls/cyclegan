@@ -28,7 +28,7 @@ parser.add_argument('--lr', default=0.0002, type=float)
 parser.add_argument('--wd', default=0, type=float)
 parser.add_argument('--batch_size', default=1, type=int)
 parser.add_argument('--dropout', default=0, type=float)
-parser.add_argument('--n_epoch', default=1, type=int)
+parser.add_argument('--n_epoch', default=10, type=int)
 parser.add_argument('--finetune', default=False, type=bool)
 parser.add_argument('--beta1', default=0.5, type=float, help='momentum term of adam')
 parser.add_argument('--lambda_A', default=10.0, type=float, help='weight for cycle loss (A -> B -> A)')
@@ -116,78 +116,85 @@ if __name__ == "__main__":
         stats['train_loss'] = {}
         stats['val_loss'] = {}
 
-        train_iter = 0
-        eval_iter = 0
+        train_vis_iter = 0
+        eval_vis_iter = 0
+        total_train_iter = math.ceil(len(train_loader) / args.batch_size)
+        total_val_iter = math.ceil(len(val_loader) / args.batch_size)
         for epoch in range(start_epoch, start_epoch + args.n_epoch):
             print("\n==== Epoch {:d} ====".format(epoch))
 
             # train
-            total_iter = math.ceil(len(train_loader) / args.batch_size)
             for i, (A, B) in enumerate(train_loader):
                 A, B = A.to(device), B.to(device)
 
                 loss = model.train((A, B))
-
-                # visualize train loss
-                if viz:
-                    viz.line(X=np.asarray([train_iter]), Y = np.asarray([loss['G_A']]), name='G_A', win=win_train_G)
-                    viz.line(X=np.asarray([train_iter]), Y = np.asarray([loss['G_B']]), name='G_B', win=win_train_G)
-                    viz.line(X=np.asarray([train_iter]), Y = np.asarray([loss['Cyc_A']]), name='Cyc_A', win=win_train_G)
-                    viz.line(X=np.asarray([train_iter]), Y = np.asarray([loss['Cyc_B']]), name='Cyc_B', win=win_train_G)
-                    viz.line(X=np.asarray([train_iter]), Y = np.asarray([loss['G']]), name='G', win=win_train_G)
-
-                    viz.line(X=np.asarray([train_iter]), Y=np.asarray([loss['D_A']]), name='D_A', win=win_train_D)
-                    viz.line(X=np.asarray([train_iter]), Y=np.asarray([loss['D_B']]), name='D_B', win=win_train_D)
-                    viz.line(X=np.asarray([train_iter]), Y=np.asarray([loss['D']]), name='D', win=win_train_D)
-                train_iter += 1
 
                 # update stats
                 s = ""
                 for k, v in loss.items():
                     if stats['train_loss'].get(k) is None:
                         stats['train_loss'][k] = []
+                    # convert Tensor to float
                     v = round(float(v), 4)
                     stats['train_loss'][k].append(v)
+                    loss[k] = v
                     s += "%s %f   " % (k, v)
 
                 if i % args.print_every_train == 0:
-                    print("Iter %d/%d    loss %s" % (i, total_iter, s))
+                    print("Iter %d/%d    loss %s" % (i, total_train_iter, s))
+
+                # visualize train loss
+                if viz:
+                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['G_A']]), name='G_A', win=win_train_G)
+                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['G_B']]), name='G_B', win=win_train_G)
+                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['Cyc_A']]), name='Cyc_A', win=win_train_G)
+                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['Cyc_B']]), name='Cyc_B', win=win_train_G)
+                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['G']]), name='G', win=win_train_G)
+
+                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['D_A']]), name='D_A', win=win_train_D)
+                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['D_B']]), name='D_B', win=win_train_D)
+                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['D']]), name='D', win=win_train_D)
+                train_vis_iter += 1
 
             # eval
             print("\nEvaluating on val set...")
-            total_iter = math.ceil(len(val_loader) / args.batch_size)
             total_val_loss = {}
             for i, images in enumerate(val_loader):
                 loss = model.eval(images)
 
-                # visualize eval loss
-                if viz:
-                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['G_A']]), name='G_A', win=win_eval_G)
-                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['G_B']]), name='G_B', win=win_eval_G)
-                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['Cyc_A']]), name='Cyc_A', win=win_eval_G)
-                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['Cyc_B']]), name='Cyc_B', win=win_eval_G)
-                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['G']]), name='G', win=win_eval_G)
-
-                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['D_A']]), name='D_A', win=win_eval_D)
-                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['D_B']]), name='D_B', win=win_eval_D)
-                    viz.line(X=np.asarray([eval_iter]), Y=np.asarray([loss['D']]), name='D', win=win_eval_D)
-                eval_iter += 1
-
+                # update stats
                 s = ""
                 for k, v in loss.items():
                     if stats['val_loss'].get(k) is None:
                         stats['val_loss'][k] = []
+                    # convert Tensor to float
                     v = round(float(v), 4)
                     stats['val_loss'][k].append(v)
+                    loss[k] = v
                     s += "%s %f   " % (k, v)
 
-                    if total_val_loss.get(k) is None:
-                        stats['val_loss'][k] = []
-                    v = round(float(v), 4)
-                    stats['val_loss'][k].append(v)
+                    # if total_val_loss.get(k) is None:
+                    #     stats['val_loss'][k] = []
+                    # v = round(float(v), 4)
+                    # stats['val_loss'][k].append(v)
 
                 if i % args.print_every_val == 0:
-                    print("Iter %d/%d    loss %s" % (i, total_iter, s))
+                    print("Iter %d/%d    loss %s" % (i, total_val_iter, s))
+
+                # visualize eval loss
+                if viz:
+                    viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['G_A']]), name='G_A', win=win_eval_G)
+                    viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['G_B']]), name='G_B', win=win_eval_G)
+                    viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['Cyc_A']]), name='Cyc_A',
+                             win=win_eval_G)
+                    viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['Cyc_B']]), name='Cyc_B',
+                             win=win_eval_G)
+                    viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['G']]), name='G', win=win_eval_G)
+
+                    viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['D_A']]), name='D_A', win=win_eval_D)
+                    viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['D_B']]), name='D_B', win=win_eval_D)
+                    viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['D']]), name='D', win=win_eval_D)
+                eval_vis_iter += 1
 
             # save stats
             log_file = file_format + '_train.json'
