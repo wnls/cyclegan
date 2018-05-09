@@ -20,9 +20,9 @@ parser.add_argument('--crop', default=256, type=int)
 # Training
 parser.add_argument('--mode', default="train", type=str)
 parser.add_argument('--pretrain_path', default='', type=str)
-parser.add_argument('--print_every_train', default=1, type=int)
-parser.add_argument('--print_every_val', default=1, type=int)
-parser.add_argument('--save_every_epoch', default=5, type=int)
+parser.add_argument('--print_every_train', default=100, type=int)
+parser.add_argument('--print_every_val', default=200, type=int)
+parser.add_argument('--save_every_epoch', default=20, type=int)
 # Optimization
 parser.add_argument('--lr', default=0.0002, type=float)
 parser.add_argument('--wd', default=0, type=float)
@@ -65,11 +65,11 @@ if __name__ == "__main__":
 
     # load data
     if args.mode == "train":
-        train_loader = dataloader.get_dataloader(args.train_A_dir, args.train_B_dir, resize=args.resize, crop=args.crop, batch_size=args.batch_size, unaligned=args.unaligned)
-        val_loader = dataloader.get_dataloader(args.val_A_dir, args.val_B_dir, resize=args.resize, crop=args.crop, batch_size=args.batch_size, unaligned=args.unaligned)
+        train_loader = dataloader.get_dataloader(args.train_A_dir, args.train_B_dir, resize=args.resize, crop=args.crop, batch_size=args.batch_size, unaligned=args.unaligned, device=device)
+        val_loader = dataloader.get_dataloader(args.val_A_dir, args.val_B_dir, resize=args.resize, crop=args.crop, batch_size=args.batch_size, unaligned=args.unaligned, device=device)
 
     if args.mode == "test":
-        test_loader = dataloader.get_dataloader(args.test_A_dir, args.test_B_dir, resize=args.resize, crop=args.crop, batch_size=args.batch_size, unaligned=args.unaligned)
+        test_loader = dataloader.get_dataloader(args.test_A_dir, args.test_B_dir, resize=args.resize, crop=args.crop, batch_size=args.batch_size, unaligned=args.unaligned, device=device)
 
     if args.vis:
         if args.port:
@@ -124,10 +124,9 @@ if __name__ == "__main__":
             print("\n==== Epoch {:d} ====".format(epoch))
 
             # train
-            for i, (A, B) in enumerate(train_loader):
-                A, B = A.to(device), B.to(device)
+            for i, images in enumerate(train_loader):
 
-                loss = model.train((A, B))
+                loss = model.train(images)
 
                 # update stats
                 s = ""
@@ -160,6 +159,7 @@ if __name__ == "__main__":
             print("\nEvaluating on val set...")
             total_val_loss = {}
             for i, images in enumerate(val_loader):
+
                 loss = model.eval(images)
 
                 # update stats
