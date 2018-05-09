@@ -111,7 +111,7 @@ class GeneratorJohnson(Generator):
     by Justin Johnson, et al.
     """
 
-    def __init__(self, image_channel, image_size, use_bias=False, norm='instancenorm'):
+    def __init__(self, image_channel=3, use_bias=False, norm='instancenorm'):
         super().__init__('Johnson')
         model = []
         model += [Conv_Norm_ReLU(image_channel, 32, (7, 7), padding=3, stride=1, bias=use_bias, norm=norm),  # c7s1-32
@@ -145,7 +145,7 @@ class DiscriminatorPatchGAN(Discriminator):
     Networks > by Philip Isola, et al.
     """
 
-    def __init__(self, image_channel, image_size, use_bias=False, norm='instancenorm', sigmoid=False):
+    def __init__(self, image_channel=3, use_bias=False, norm='instancenorm', sigmoid=False):
         super().__init__('PatchGAN')
         model = []
         model += [Conv_Norm_ReLU(image_channel, 64, (4, 4), padding=1, stride=2, bias=use_bias, relu=0.2, norm=None), # C64
