@@ -2,6 +2,7 @@ import torch
 # import modules
 import itertools
 from .gan_model import *
+import scipy
 
 class CycleGANModel:
 
@@ -198,3 +199,30 @@ class CycleGANModel:
                 'optimG': self.optimizer_G.state_dict(),
                 'optimD': self.optimizer_D.state_dict()}
 
+    def save_image(self, input, filepath, time_stamp):
+        """ assuming A is a batch of images, and B is a batch of target images"""
+        A, B, A_gen, B_gen = input
+
+        img_A, fake_A = A.numpy(), A_gen.numpy()
+        img_B, fake_B = B.numpy(), B_gen.numpy()
+
+        merged = self.merge_images(img_A, fake_A)
+        path = os.path.join(filepath, 'sample-aerial-map-%s.png', %time_stamp)
+        scipy.misc.imsave(path, merged)
+        print('saved %s' % path)
+
+        merged = self.merge_images(img_B, fake_B)
+        path = os.path.join(filepath, 'sample-map-aerial-%s.png', %time_stamp)
+        scipy.misc.imsave(path, merged)
+        print('saved %s' % path)
+
+    def merge_images(self, sources, targets):
+        batch_size, _, h, w = sources.shape
+        row = int(np.sqrt(batch_size))
+        merged = np.zeros([3, row * h, row * w * 2])
+        for idx, (s, t) in enumerate(zip(sources, targets)):
+            i = idx // row
+            j = idx % row
+            merged[:, i * h:(i + 1) * h, (j * 2) * w:(j * 2 + 1) * w] = s
+            merged[:, i * h:(i + 1) * h, (j*2+1) * w:(j * 2 + 2) * w] = t
+        return merged.transpose(1, 2, 0)
