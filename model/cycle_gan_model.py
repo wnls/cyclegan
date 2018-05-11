@@ -1,6 +1,7 @@
 import torch
 # import modules
 import itertools
+import os
 from .gan_model import *
 import scipy
 
@@ -41,32 +42,37 @@ class CycleGANModel:
 
         A, B = input
 
-        B_gen = self.G_A(A)
-        A_cyc = self.G_B(B_gen)
-        A_gen = self.G_B(B)
-        B_cyc = self.G_A(A_gen)
-
         ############################
         # G loss
         ############################
+        self.optimizer_G.zero_grad()
 
         # GAN loss D_A(G_A(A))
+        B_gen = self.G_A(A)
         loss_G_A = self.gan_loss(self.D_A(B_gen), 1)
+
         # GAN loss D_B(G_B(B))
+        A_gen = self.G_B(B)
         loss_G_B = self.gan_loss(self.D_B(A_gen), 1)
+
         # Forward cycle loss
+        A_cyc = self.G_B(B_gen)
         loss_cyc_A = self.cycle_loss_fn(A_cyc, A) * self.lambda_A
+
         # Backward cycle loss
+        B_cyc = self.G_A(A_gen)
         loss_cyc_B = self.cycle_loss_fn(B_cyc, B) * self.lambda_B
+
         # Combine
         loss_G = loss_G_A + loss_G_B + loss_cyc_A + loss_cyc_B
 
-        loss_G.backward(retain_graph=True)
+        loss_G.backward(retrain_graph=True)
         self.optimizer_G.step()
 
         ############################
         # D loss
         ############################
+        self.optimizer_D.zero_grad()
 
         #TODO: redo foward pass using updated weights or use retain graph?
         #TODO: D fake loss use pool
@@ -207,12 +213,12 @@ class CycleGANModel:
         img_B, fake_B = B.numpy(), B_gen.numpy()
 
         merged = self.merge_images(img_A, fake_A)
-        path = os.path.join(filepath, 'sample-aerial-map-%s.png', %time_stamp)
+        path = os.path.join(filepath, 'sample-aerial-map-%s.png' % time_stamp)
         scipy.misc.imsave(path, merged)
         print('saved %s' % path)
 
         merged = self.merge_images(img_B, fake_B)
-        path = os.path.join(filepath, 'sample-map-aerial-%s.png', %time_stamp)
+        path = os.path.join(filepath, 'sample-map-aerial-%s.png' % time_stamp)
         scipy.misc.imsave(path, merged)
         print('saved %s' % path)
 
