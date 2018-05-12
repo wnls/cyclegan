@@ -269,7 +269,7 @@ class ImageBuffer():
                 result.append(image)
             else:
                 if random.uniform(0, 1) > 0.5:
-                    i = random.randin(0, self.buffer_size-1)
+                    i = random.randint(0, self.buffer_size-1)
                     result.append(self.buffer[i].clone())
                     self.buffer[i] = image
                 else:
