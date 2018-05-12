@@ -4,6 +4,7 @@ import itertools
 import os
 from .gan_model import *
 import scipy
+import random
 
 class CycleGANModel:
 
@@ -26,6 +27,9 @@ class CycleGANModel:
 
         self.lambda_A = args.lambda_A
         self.lambda_B = args.lambda_B
+
+        self.A_gen_buffer = ImageBuffer()
+        self.B_gen_buffer = ImageBuffer()
 
 
     def to(self, device):
@@ -66,7 +70,7 @@ class CycleGANModel:
         # Combine
         loss_G = loss_G_A + loss_G_B + loss_cyc_A + loss_cyc_B
 
-        loss_G.backward(retrain_graph=True)
+        loss_G.backward()
         self.optimizer_G.step()
 
         ############################
@@ -74,19 +78,26 @@ class CycleGANModel:
         ############################
         self.optimizer_D.zero_grad()
 
-        #TODO: redo foward pass using updated weights or use retain graph?
-        #TODO: D fake loss use pool
-        #
+        # D_A real loss
         loss_D_A_real = self.gan_loss(self.D_A(B), 1)
-        loss_D_A_fake = self.gan_loss(self.D_A(B_gen), 0)
-        loss_D_A = loss_D_A_real + loss_D_A_fake
 
+        # D_A fake loss
+        B_gen = self.B_gen_buffer.push_and_pop(B_gen).detach()
+        loss_D_A_fake = self.gan_loss(self.D_A(B_gen), 0)
+
+        loss_D_A = (loss_D_A_real + loss_D_A_fake) * 0.5
+
+        # D_B real loss
         loss_D_B_real = self.gan_loss(self.D_B(A), 1)
+
+        # D_B fake loss
+        A_gen = self.A_gen_buffer.push_and_pop(A_gen).detach()
         loss_D_B_fake = self.gan_loss(self.D_B(A_gen), 0)
-        loss_D_B = loss_D_B_real + loss_D_B_fake
+
+        loss_D_B = (loss_D_B_real + loss_D_B_fake) * 0.5
 
         #TODO can add?
-        loss_D = (loss_D_A + loss_D_B) * 0.5
+        loss_D = loss_D_A + loss_D_B
         loss_D.backward()
         self.optimizer_D.step()
 
@@ -232,3 +243,38 @@ class CycleGANModel:
             merged[:, i * h:(i + 1) * h, (j * 2) * w:(j * 2 + 1) * w] = s
             merged[:, i * h:(i + 1) * h, (j*2+1) * w:(j * 2 + 2) * w] = t
         return merged.transpose(1, 2, 0)
+
+
+class ImageBuffer():
+    """
+    Buffer to store [buffer_size] generated images.
+    """
+    def __init__(self, buffer_size=50):
+        assert (buffer_size > 0), "Buffer size must > 0"
+        self.buffer_size = buffer_size
+        self.buffer = []
+
+    def push_and_pop(self, images):
+        """
+        Query buffer and return Tensor of same size randomly picked
+        from image buffer.
+        :param data:
+        :return:
+        """
+        result = []
+        for image in images:
+            image = torch.unsqueeze(image, 0)
+            if len(self.buffer) < self.buffer_size:
+                self.buffer.append(image)
+                result.append(image)
+            else:
+                if random.uniform(0, 1) > 0.5:
+                    i = random.randin(0, self.buffer_size-1)
+                    result.append(self.buffer[i].clone())
+                    self.buffer[i] = image
+                else:
+                    result.append(image)
+        return torch.cat(result, 0)
+
+
+
