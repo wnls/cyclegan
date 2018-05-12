@@ -3,7 +3,7 @@ import torch
 import itertools
 import os
 from .gan_model import *
-import scipy
+import scipy.misc
 import random
 
 class CycleGANModel:
@@ -134,6 +134,8 @@ class CycleGANModel:
         A_gen = self.G_B(B)
         B_cyc = self.G_A(A_gen)
 
+        # self.save_image((A, B_gen, A_cyc, B, A_gen, B_cyc), 'datasets/maps/samples', '2018')
+
         ############################
         # G loss
         ############################
@@ -207,7 +209,6 @@ class CycleGANModel:
                 param_group['lr'] = lr
             print('optim lr: before={} / after={}'.format(before, lr))
 
-
     def save_state(self):
         return {'G_A': self.G_A.state_dict(),
                 'G_B': self.G_B.state_dict(),
@@ -217,33 +218,41 @@ class CycleGANModel:
                 'optimD': self.optimizer_D.state_dict()}
 
     def save_image(self, input, filepath, time_stamp):
-        """ assuming A is a batch of images, and B is a batch of target images"""
-        A, B, A_gen, B_gen = input
+        """ input is a tuple of the images we want to compare """
+        A, B_gen, A_cyc, B, A_gen, B_cyc = input
 
-        img_A, fake_A = A.numpy(), A_gen.numpy()
-        img_B, fake_B = B.numpy(), B_gen.numpy()
+        img_A, fake_A, cyc_A = self.tensor2image(A), self.tensor2image(A_gen), self.tensor2image(A_cyc)
+        img_B, fake_B, cyc_B = self.tensor2image(B), self.tensor2image(B_gen), self.tensor2image(B_cyc)
 
-        merged = self.merge_images(img_A, fake_A)
+        sources = np.vstack((img_A, img_B))
+        targets = np.vstack((fake_A, fake_B))
+        cycles = np.vstack((cyc_A, cyc_B))
+
+        merged = self.merge_images(sources, targets, cycles)
         path = os.path.join(filepath, 'sample-aerial-map-%s.png' % time_stamp)
         scipy.misc.imsave(path, merged)
         print('saved %s' % path)
 
-        merged = self.merge_images(img_B, fake_B)
-        path = os.path.join(filepath, 'sample-map-aerial-%s.png' % time_stamp)
-        scipy.misc.imsave(path, merged)
-        print('saved %s' % path)
+    def tensor2image(self, input):
+        image_data = input.data
+        image = 127.5 * (image_data.cpu().float().numpy() + 1.0)
+        return image.astype(np.uint8)
 
-    def merge_images(self, sources, targets):
-        batch_size, _, h, w = sources.shape
-        row = int(np.sqrt(batch_size))
-        merged = np.zeros([3, row * h, row * w * 2])
-        for idx, (s, t) in enumerate(zip(sources, targets)):
-            i = idx // row
-            j = idx % row
-            merged[:, i * h:(i + 1) * h, (j * 2) * w:(j * 2 + 1) * w] = s
-            merged[:, i * h:(i + 1) * h, (j*2+1) * w:(j * 2 + 2) * w] = t
+    def merge_images(self, sources, targets, cycles):
+        row, _, h, w = sources.shape
+        # row = int(np.sqrt(batch_size))
+        merged = np.zeros([3, row * h, w * 3])
+        for idx, (s, t, c) in enumerate(zip(sources, targets, cycles)):
+            i = idx
+            # i = (idx + 1) // row
+            # j = idx % row
+            # merged[:, i * h:(i + 1) * h, (j * 2) * w:(j * 2 + 1) * w] = s
+            # merged[:, i * h:(i + 1) * h, (j*2+1) * w:(j * 2 + 2) * w] = t
+            # merged[:, i * h:(i + 1) * h, (j*2+2) * w:(j * 2 + 3) * w] = c
+            merged[:, i * h:(i + 1) * h, 0:w] = s
+            merged[:, i * h:(i + 1) * h, w:2 * w] = t
+            merged[:, i * h:(i + 1) * h, 2 * w:3 * w] = c
         return merged.transpose(1, 2, 0)
-
 
 class ImageBuffer():
     """
