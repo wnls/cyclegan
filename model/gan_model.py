@@ -145,7 +145,7 @@ class DiscriminatorPatchGAN(Discriminator):
     Networks > by Philip Isola, et al.
     """
 
-    def __init__(self, image_channel=3, use_bias=True, norm='instancenorm', sigmoid=True):
+    def __init__(self, image_channel=3, use_bias=True, norm='instancenorm', sigmoid=False):
         super().__init__('PatchGAN')
         model = []
         model += [Conv_Norm_ReLU(image_channel, 64, (4, 4), padding=1, stride=2, bias=use_bias, relu=0.2, norm=None), # C64
