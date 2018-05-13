@@ -156,8 +156,9 @@ if __name__ == "__main__":
                     print("Iter %d/%d    loss %s" % (i, total_train_iter, s))
 
                 # visualize train loss
+                iter_id = epoch + i / len(train_loader)
                 if args.vis:
-                    opt = {'X': np.asarray([iter]), 'opts': {'showlegend': True}, 'update': 'append'}
+                    opt = {'X': np.asarray([iter_id]), 'opts': {'showlegend': True}, 'update': 'append'}
 
                     opt['win'] = win_train_G
                     for item in ['G_A', 'G_B', 'Cyc_A', 'Cyc_B', 'G']:
