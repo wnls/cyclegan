@@ -10,10 +10,15 @@ class CycleGANModel:
 
     def __init__(self, args):
         # Code (paper): G_A (G), G_B (F), D_A (D_Y), D_B (D_X)
-        self.G_A = GeneratorJohnson()
-        self.G_B = GeneratorJohnson()
-        self.D_A = DiscriminatorPatchGAN()
-        self.D_B = DiscriminatorPatchGAN()
+        # self.G_A = GeneratorJohnson()
+        # self.G_B = GeneratorJohnson()
+        # self.D_A = DiscriminatorPatchGAN()
+        # self.D_B = DiscriminatorPatchGAN()
+
+        self.G_A = Generator()
+        self.G_B = Generator()
+        self.D_A = Discriminator()
+        self.D_B = Discriminator()
 
         self.optimizer_G = torch.optim.Adam(itertools.chain(self.G_A.parameters(),
                                             self.G_B.parameters()),
@@ -63,6 +68,7 @@ class CycleGANModel:
 
         # GAN loss D_A(G_A(A))
         B_gen = self.G_A(A)
+        print(self.D_A(B_gen).shape)
         loss_G_A = self.gan_loss(self.D_A(B_gen), 1)
 
         # GAN loss D_B(G_B(B))
