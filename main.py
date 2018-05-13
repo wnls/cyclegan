@@ -92,12 +92,16 @@ if __name__ == "__main__":
             startup_sec -= 0.1
         assert viz.check_connection(), 'No connection could be formed quickly'
 
-        win_train_G = viz.line(X=np.asarray([0]), Y=np.asarray([0]))
-        win_train_D = viz.line(X=np.asarray([0]), Y=np.asarray([0]))
-        # win_train_tot = viz.line(X=np.asarray([0]), Y=np.asarray([0]))
-        win_eval_G  = viz.line(X=np.asarray([0]), Y=np.asarray([0]))
-        win_eval_D  = viz.line(X=np.asarray([0]), Y=np.asarray([0]))
-        # win_eval_tot  = viz.line(X=np.asarray([0]), Y=np.asarray([0]))
+        win_train_G = viz.line(X=np.asarray([0]), Y=np.asarray([0]), opts={'title': 'Train Loss (Genarator + Cycle)', 'showlegend': False})
+        win_train_D = viz.line(X=np.asarray([0]), Y=np.asarray([0]), opts={'title': 'Train Loss (Discriminator)', 'showlegend': False})
+        win_train_total = viz.line(X=np.asarray([0]), Y=np.asarray([0]), opts={'title': 'Train Loss (Total)', 'showlegend': False})
+
+        win_eval_G = viz.line(X=np.asarray([0]), Y=np.asarray([0]), opts={'title': 'Eval Loss (Genarator + Cycle)', 'showlegend': False})
+        win_eval_D = viz.line(X=np.asarray([0]), Y=np.asarray([0]), opts={'title': 'Eval Loss (Discriminator)', 'showlegend': False})
+        win_eval_total = viz.line(X=np.asarray([0]), Y=np.asarray([0]), opts={'title': 'Eval Loss (Total)', 'showlegend': False})
+
+        win_comp_tot = viz.line(X=np.asarray([0]), Y=np.asarray([0]), opts={'title': 'Loss', 'showlegend': False})
+
         # print('train window id =', win_train)
         # print('eval window id =', win_eval)
     else:
@@ -125,11 +129,10 @@ if __name__ == "__main__":
         stats['train_loss'] = {}
         stats['val_loss'] = {}
 
-        train_vis_iter = 0
-        eval_vis_iter = 0
         total_train_iter = math.ceil(len(train_loader) / args.batch_size)
         eval_n = min(args.eval_n, len(val_loader))
         total_val_iter = math.ceil(eval_n / args.batch_size)
+
         for epoch in range(start_epoch, start_epoch + args.n_epoch):
             print("\n==== Epoch {:d} ====".format(epoch))
 
@@ -153,22 +156,36 @@ if __name__ == "__main__":
                     print("Iter %d/%d    loss %s" % (i, total_train_iter, s))
 
                 # visualize train loss
-                if viz:
-                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['G_A']]), name='G_A', win=win_train_G)
-                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['G_B']]), name='G_B', win=win_train_G)
-                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['Cyc_A']]), name='Cyc_A', win=win_train_G)
-                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['Cyc_B']]), name='Cyc_B', win=win_train_G)
-                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['G']]), name='G', win=win_train_G)
+                if args.vis:
+                    opt = {'X': np.asarray([iter]), 'opts': {'showlegend': True}, 'update': 'append'}
 
-                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['D_A']]), name='D_A', win=win_train_D)
-                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['D_B']]), name='D_B', win=win_train_D)
-                    viz.line(X=np.asarray([train_vis_iter]), Y=np.asarray([loss['D']]), name='D', win=win_train_D)
-                train_vis_iter += 1
+                    opt['win'] = win_train_G
+                    for item in ['G_A', 'G_B', 'Cyc_A', 'Cyc_B', 'G']:
+                        opt['Y'] = np.asarray([loss[item]])
+                        opt['name'] = item
+                        viz.line(**opt)
+
+                    opt['win'] = win_train_D
+                    for item in ['D_A', 'D_B', 'D']:
+                        opt['Y'] = np.asarray([loss[item]])
+                        opt['name'] = item
+                        viz.line(**opt)
+
+                    opt['win'] = win_train_total
+                    for item in ['D', 'G']:
+                        opt['Y'] = np.asarray([loss[item]])
+                        opt['name'] = item
+                        viz.line(**opt)
+
+                    if i == len(train_loader) - 1:
+                        viz.line(X=np.asarray([epoch]), Y=np.asarray([loss['G']]), name='Train G', win=win_comp_tot, opts={'showlegend': True}, update='append')
+                        viz.line(X=np.asarray([epoch]), Y=np.asarray([loss['D']]), name='Train D', win=win_comp_tot, opts={'showlegend': True}, update='append')
 
             # eval
             if eval_n > 0:
                 print("\nEvaluating %d examples on val set..." % eval_n)
                 total_val_loss = {}
+                avg_val_loss = {}
                 for i, images in enumerate(val_loader):
                     if i >= args.eval_n:
                         i -= 1
@@ -193,27 +210,39 @@ if __name__ == "__main__":
                     if i % args.print_every_val == 0:
                         print("Iter %d/%d    loss %s" % (i, total_val_iter, s))
 
-                    # visualize eval loss
-                    if viz:
-                        viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['G_A']]), name='G_A', win=win_eval_G)
-                        viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['G_B']]), name='G_B', win=win_eval_G)
-                        viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['Cyc_A']]), name='Cyc_A',
-                                 win=win_eval_G)
-                        viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['Cyc_B']]), name='Cyc_B',
-                                 win=win_eval_G)
-                        viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['G']]), name='G', win=win_eval_G)
-
-                        viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['D_A']]), name='D_A', win=win_eval_D)
-                        viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['D_B']]), name='D_B', win=win_eval_D)
-                        viz.line(X=np.asarray([eval_vis_iter]), Y=np.asarray([loss['D']]), name='D', win=win_eval_D)
-                    eval_vis_iter += 1
 
                 # calculate avg val loss
                 s = ""
                 for k, v in total_val_loss.items():
+                    avg_val_loss[k] = v / (i + 1)
                     s += "%s %f   " % (k, v / (i + 1))
                 print("Average val loss    %s" % s)
-            
+
+                # visualize val loss
+                if args.vis:
+                    opt = {'X': np.asarray([epoch]), 'opts': {'showlegend': True}, 'update': 'append'}
+
+                    opt['win'] = win_eval_G
+                    for item in ['G_A', 'G_B', 'Cyc_A', 'Cyc_B', 'G']:
+                        opt['Y'] = np.asarray([avg_val_loss[item]])
+                        opt['name'] = item
+                        viz.line(**opt)
+
+                    opt['win'] = win_eval_D
+                    for item in ['D_A', 'D_B', 'D']:
+                        opt['Y'] = np.asarray([avg_val_loss[item]])
+                        opt['name'] = item
+                        viz.line(**opt)
+
+                    opt['win'] = win_eval_total
+                    for item in ['D', 'G']:
+                        opt['Y'] = np.asarray([avg_val_loss[item]])
+                        opt['name'] = item
+                        viz.line(**opt)
+
+                    viz.line(X=np.asarray([epoch]), Y=np.asarray([avg_val_loss['G']]), name='Val G', win=win_comp_tot, opts={'showlegend': True}, update='append')
+                    viz.line(X=np.asarray([epoch]), Y=np.asarray([avg_val_loss['D']]), name='Val D', win=win_comp_tot, opts={'showlegend': True}, update='append')
+                    
             # save stats
             with open(log_file, "w") as f:
                 json.dump(stats, f)
