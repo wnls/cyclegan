@@ -97,8 +97,8 @@ class CycleGANModel:
         loss_D_A_real = self.gan_loss(self.D_A(B), 1)
 
         # D_A fake loss
-        B_gen = self.B_gen_buffer.push_and_pop(B_gen).detach()
-        loss_D_A_fake = self.gan_loss(self.D_A(B_gen), 0)
+        B_gen_pool = self.B_gen_buffer.push_and_pop(B_gen).detach()
+        loss_D_A_fake = self.gan_loss(self.D_A(B_gen_pool), 0)
 
         loss_D_A = (loss_D_A_real + loss_D_A_fake) * 0.5
 
@@ -106,8 +106,8 @@ class CycleGANModel:
         loss_D_B_real = self.gan_loss(self.D_B(A), 1)
 
         # D_B fake loss
-        A_gen = self.A_gen_buffer.push_and_pop(A_gen).detach()
-        loss_D_B_fake = self.gan_loss(self.D_B(A_gen), 0)
+        A_gen_pool = self.A_gen_buffer.push_and_pop(A_gen).detach()
+        loss_D_B_fake = self.gan_loss(self.D_B(A_gen_pool), 0)
 
         loss_D_B = (loss_D_B_real + loss_D_B_fake) * 0.5
 
@@ -174,8 +174,8 @@ class CycleGANModel:
         loss_D_A_real = self.gan_loss(self.D_A(B), 1)
 
         # D_A fake loss
-        B_gen = self.B_gen_buffer.push_and_pop(B_gen).detach()
-        loss_D_A_fake = self.gan_loss(self.D_A(B_gen), 0)
+        B_gen_pool = self.B_gen_buffer.push_and_pop(B_gen).detach()
+        loss_D_A_fake = self.gan_loss(self.D_A(B_gen_pool), 0)
 
         loss_D_A = (loss_D_A_real + loss_D_A_fake) * 0.5
 
@@ -183,8 +183,8 @@ class CycleGANModel:
         loss_D_B_real = self.gan_loss(self.D_B(A), 1)
 
         # D_B fake loss
-        A_gen = self.A_gen_buffer.push_and_pop(A_gen).detach()
-        loss_D_B_fake = self.gan_loss(self.D_B(A_gen), 0)
+        A_gen_pool = self.A_gen_buffer.push_and_pop(A_gen).detach()
+        loss_D_B_fake = self.gan_loss(self.D_B(A_gen_pool), 0)
 
         loss_D_B = (loss_D_B_real + loss_D_B_fake) * 0.5
 
