@@ -146,8 +146,8 @@ if __name__ == "__main__":
         stats['val_loss'] = {}
 
         total_train_iter = len(train_loader)
-        eval_n = min(args.eval_n, len(val_loader))
-        total_val_iter = math.ceil(eval_n / args.batch_size)
+        eval_n = min(args.eval_n, len(val_loader)) #TODO batch
+        total_val_iter = eval_n
 
         for epoch in range(start_epoch, start_epoch + args.n_epoch):
             print("\n==== Epoch {:d} ====".format(epoch))
