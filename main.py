@@ -18,6 +18,7 @@ parser.add_argument('--unaligned', default=True, type=bool)
 parser.add_argument('--resize', default=286, type=int)
 parser.add_argument('--crop', default=256, type=int)
 # Training
+parser.add_argument('--device_id', default=0, type=str)
 parser.add_argument('--mode', default="train", type=str)
 parser.add_argument('--pretrain_path', default='', type=str)
 parser.add_argument('--print_every_train', default=100, type=int)
@@ -37,12 +38,7 @@ parser.add_argument('--lambda_B', default=10.0, type=float, help='weight for cyc
 parser.add_argument('--lambda_idt', default=0.5, type=float)
 # Files
 parser.add_argument('--out_dir', default='./checkpoints', type=str)
-parser.add_argument('--train_A_dir', default='./datasets/maps/trainA', type=str)
-parser.add_argument('--train_B_dir', default='./datasets/maps/trainB', type=str)
-parser.add_argument('--val_A_dir', default='./datasets/maps/valA', type=str)
-parser.add_argument('--val_B_dir', default='./datasets/maps/valB', type=str)
-parser.add_argument('--test_A_dir', default='./datasets/maps/testA', type=str)
-parser.add_argument('--test_B_dir', default='./datasets/maps/testB', type=str)
+parser.add_argument('--data_dir', default='./datasets/maps/', type=str)
 
 # Visualization
 parser.add_argument('--vis', default=False, action='store_true')
@@ -51,8 +47,8 @@ parser.add_argument('--port', default=8097, type=int)
 
 if __name__ == "__main__":
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
+    device = torch.device("cuda:%d" % args.device_id if torch.cuda.is_available() else "cpu")
 
     s = "Using %s\n\n" % device
     for k, v in vars(args).items():
@@ -77,9 +73,13 @@ if __name__ == "__main__":
         print("\nSave model and stats to directory %s" % (out_dir))
 
         # load data
-        train_loader = dataloader.get_dataloader(args.train_A_dir, args.train_B_dir, resize=args.resize, crop=args.crop,
+        train_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "trainA"),
+                                                 os.path.join(args.data_dir, "trainB"),
+                                                 resize=args.resize, crop=args.crop,
                                                  batch_size=args.batch_size, unaligned=args.unaligned, device=device)
-        val_loader = dataloader.get_dataloader(args.val_A_dir, args.val_B_dir, resize=args.resize, crop=args.crop,
+        val_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "valA"),
+                                               os.path.join(args.data_dir, "valB"),
+                                               resize=args.resize, crop=args.crop,
                                                batch_size=args.batch_size, unaligned=args.unaligned, device=device)
     if args.mode == "test":
         out_dir = os.path.dirname(args.pretrain_path)
@@ -87,7 +87,9 @@ if __name__ == "__main__":
         os.mkdir(out_dir_img)
 
         # load data
-        test_loader = dataloader.get_dataloader(args.test_A_dir, args.test_B_dir, resize=args.resize, crop=args.crop,
+        test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "testA"),
+                                                os.path.join(args.data_dir, "testB"),
+                                                resize=args.resize, crop=args.crop,
                                                 batch_size=args.batch_size, unaligned=args.unaligned, device=device)
 
     if args.vis:
