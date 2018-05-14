@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import itertools
-
+import torch.nn.functional as F
 
 def norm_relu_layer(out_channel, norm, relu):
     if norm == 'batchnorm':
@@ -165,8 +165,6 @@ class DiscriminatorPatchGAN(Discriminator):
         """
         return self.model(input)
 
-import torch.nn.functional as F
-
 class ResidualBlock(nn.Module):
     def __init__(self, in_features):
         super(ResidualBlock, self).__init__()
@@ -184,9 +182,9 @@ class ResidualBlock(nn.Module):
     def forward(self, x):
         return x + self.conv_block(x)
 
-class Generator(nn.Module):
+class GeneratorAitorzip(Generator):
     def __init__(self, input_nc=3, output_nc=3, n_residual_blocks=9):
-        super(Generator, self).__init__()
+        super(GeneratorAitorzip, self).__init__('Aitorzip')
 
         # Initial convolution block
         model = [   nn.ReflectionPad2d(3),
@@ -227,9 +225,9 @@ class Generator(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-class Discriminator(nn.Module):
+class DiscriminatorAitorzip(Discriminator):
     def __init__(self, input_nc=3):
-        super(Discriminator, self).__init__()
+        super(DiscriminatorAitorzip, self).__init__('Aitorzip')
 
         # A bunch of convolutions one after another
         model = [   nn.Conv2d(input_nc, 64, 4, stride=2, padding=1),
