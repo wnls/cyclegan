@@ -45,7 +45,7 @@ class CycleGANModel:
         self.D_A.to(device)
         self.D_B.to(device)
 
-    def train(self, input):
+    def train(self, input, save, out_dir_img, epoch):
         self.G_A.train()
         self.G_B.train()
         self.D_A.train()
@@ -116,14 +116,16 @@ class CycleGANModel:
         loss_D.backward()
         self.optimizer_D.step()
 
-        # TODO batch avg?
+        # save image
+        if save:
+            self.save_image((A, B_gen, A_cyc, B, A_gen, B_cyc), out_dir_img, "train_ep_%d" % epoch)
 
         return {'G': loss_G,
                 'G_A': loss_G_A, 'Cyc_A': loss_cyc_A, 'G_A_idt': loss_G_A_idt,
                 'G_B': loss_G_B,  'Cyc_B': loss_cyc_B,  'G_B_idt': loss_G_B_idt,
                 'D': loss_D, 'D_A': loss_D_A, 'D_B': loss_D_B}
 
-    def eval(self, input):
+    def eval(self, input, save, out_dir_img, epoch):
         self.G_A.eval()
         self.G_B.eval()
         self.D_A.eval()
@@ -191,10 +193,23 @@ class CycleGANModel:
 
         # TODO batch avg?
 
+        # save image
+        if save:
+            self.save_image((A, B_gen, A_cyc, B, A_gen, B_cyc), out_dir_img, "val_ep_%d" % epoch)
+
         return {'G': loss_G,
                 'G_A': loss_G_A, 'Cyc_A': loss_cyc_A, 'G_A_idt': loss_G_A_idt,
                 'G_B': loss_G_B, 'Cyc_B': loss_cyc_B, 'G_B_idt': loss_G_B_idt,
                 'D': loss_D, 'D_A': loss_D_A, 'D_B': loss_D_B}
+
+    def test(self, images, i, out_dir_img):
+        A, B = images
+        B_gen = self.G_A(A)
+        A_gen = self.G_B(B)
+        A_cyc = self.G_B(B_gen)
+        B_cyc = self.G_A(A_gen)
+
+        self.save_image((A, B_gen, A_cyc, B, A_gen, B_cyc), out_dir_img, "test_%d" % i)
 
     def compute_loss(self, A, B):
         B_gen = self.G_A(A)
@@ -242,7 +257,7 @@ class CycleGANModel:
                 'optimG': self.optimizer_G.state_dict(),
                 'optimD': self.optimizer_D.state_dict()}
 
-    def save_image(self, input, filepath, time_stamp):
+    def save_image(self, input, filepath, fname):
         """ input is a tuple of the images we want to compare """
         A, B_gen, A_cyc, B, A_gen, B_cyc = input
 
@@ -254,7 +269,7 @@ class CycleGANModel:
         cycles = np.vstack((cyc_A, cyc_B))
 
         merged = self.merge_images(sources, targets, cycles)
-        path = os.path.join(filepath, 'sample-aerial-map-%s.png' % time_stamp)
+        path = os.path.join(filepath, '%s.png' % fname)
         scipy.misc.imsave(path, merged)
         print('saved %s' % path)
 

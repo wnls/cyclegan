@@ -24,13 +24,13 @@ parser.add_argument('--print_every_train', default=100, type=int)
 parser.add_argument('--print_every_val', default=200, type=int)
 parser.add_argument('--save_every_epoch', default=20, type=int)
 parser.add_argument('--eval_n', default=100, type=int, help='number of examples from val set to evaluate on each epoch')
+parser.add_argument('--save_n_img', default=5, type=int, help='number of images to save at test time')
 # Optimization
 parser.add_argument('--lr', default=0.0002, type=float)
 parser.add_argument('--wd', default=0, type=float)
 parser.add_argument('--batch_size', default=1, type=int)
 parser.add_argument('--dropout', default=0, type=float)
 parser.add_argument('--n_epoch', default=10, type=int)
-parser.add_argument('--finetune', default=False, type=bool)
 parser.add_argument('--beta1', default=0.5, type=float, help='momentum term of adam')
 parser.add_argument('--lambda_A', default=10.0, type=float, help='weight for cycle loss (A -> B -> A)')
 parser.add_argument('--lambda_B', default=10.0, type=float, help='weight for cycle loss (B -> A -> B)')
@@ -54,32 +54,41 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
 
-    # output files
-    if not os.path.exists(args.out_dir):
-        os.mkdir(args.out_dir)
-    out_dir = os.path.join(args.out_dir, time.strftime("%m%d%H%M%S"))
-    os.mkdir(out_dir)
-    out_dir_img = os.path.join(out_dir, "images")
-    os.mkdir(out_dir_img)
-    log_file = os.path.join(out_dir, "train.json")
-    config_file = os.path.join(out_dir, "config.txt")
-
     s = "Using %s\n\n" % device
     for k, v in vars(args).items():
         s += "%s = %s\n" % (k, v)
     print(s)
-    # save configs to config file
-    with open(config_file, "w") as f:
-        f.write(s)
-    print("\nSave model and stats to directory %s" % (out_dir))
 
-    # load data
+    # output files
+    if not os.path.exists(args.out_dir):
+        os.mkdir(args.out_dir)
+
     if args.mode == "train":
-        train_loader = dataloader.get_dataloader(args.train_A_dir, args.train_B_dir, resize=args.resize, crop=args.crop, batch_size=args.batch_size, unaligned=args.unaligned, device=device)
-        val_loader = dataloader.get_dataloader(args.val_A_dir, args.val_B_dir, resize=args.resize, crop=args.crop, batch_size=args.batch_size, unaligned=args.unaligned, device=device)
+        out_dir = os.path.join(args.out_dir, time.strftime("%m%d%H%M%S"))
+        os.mkdir(out_dir)
+        out_dir_img = os.path.join(out_dir, "images")
+        os.mkdir(out_dir_img)
+        log_file = os.path.join(out_dir, "train.json")
+        config_file = os.path.join(out_dir, "config.txt")
 
+        # save configs to config file
+        with open(config_file, "w") as f:
+            f.write(s)
+        print("\nSave model and stats to directory %s" % (out_dir))
+
+        # load data
+        train_loader = dataloader.get_dataloader(args.train_A_dir, args.train_B_dir, resize=args.resize, crop=args.crop,
+                                                 batch_size=args.batch_size, unaligned=args.unaligned, device=device)
+        val_loader = dataloader.get_dataloader(args.val_A_dir, args.val_B_dir, resize=args.resize, crop=args.crop,
+                                               batch_size=args.batch_size, unaligned=args.unaligned, device=device)
     if args.mode == "test":
-        test_loader = dataloader.get_dataloader(args.test_A_dir, args.test_B_dir, resize=args.resize, crop=args.crop, batch_size=args.batch_size, unaligned=args.unaligned, device=device)
+        out_dir = os.path.dirname(args.pretrain_path)
+        out_dir_img = os.path.join(out_dir, "images", "test")
+        os.mkdir(out_dir_img)
+
+        # load data
+        test_loader = dataloader.get_dataloader(args.test_A_dir, args.test_B_dir, resize=args.resize, crop=args.crop,
+                                                batch_size=args.batch_size, unaligned=args.unaligned, device=device)
 
     if args.vis:
         if args.port:
@@ -136,11 +145,12 @@ if __name__ == "__main__":
 
         for epoch in range(start_epoch, start_epoch + args.n_epoch):
             print("\n==== Epoch {:d} ====".format(epoch))
+            t_start = time.time()
 
             # train
             for i, images in enumerate(train_loader):
 
-                loss = model.train(images)
+                loss = model.train(images, save=(i == 0), out_dir_img=out_dir_img, epoch=epoch)
 
                 # update stats
                 s = ""
@@ -183,6 +193,8 @@ if __name__ == "__main__":
                         viz.line(X=np.asarray([epoch]), Y=np.asarray([loss['G']]), name='Train G', win=win_comp_tot, opts={'showlegend': True}, update='append')
                         viz.line(X=np.asarray([epoch]), Y=np.asarray([loss['D']]), name='Train D', win=win_comp_tot, opts={'showlegend': True}, update='append')
 
+            print("Time taken: %.2f m" % ((time.time() - t_start) / 60))
+
             # eval
             if eval_n > 0:
                 print("\nEvaluating %d examples on val set..." % eval_n)
@@ -193,7 +205,7 @@ if __name__ == "__main__":
                         i -= 1
                         break
 
-                    loss = model.eval(images)
+                    loss = model.eval(images, save=(i == 0), out_dir_img=out_dir_img, epoch=epoch)
 
                     # update stats
                     s = ""
@@ -264,24 +276,29 @@ if __name__ == "__main__":
 
     if args.mode == "test":
         print("\nEvaluating on test set...")
-        test_loss = {}
         for i, images in enumerate(test_loader):
-            loss = model.eval(images)
+            if i >= args.save_n_img:
+                break
+            model.test(images, i, out_dir_img)
 
-            for k, v in loss.items():
-                if test_loss.get(k) is None:
-                    test_loss[k] = 0
-                v = round(float(v), 4)
-                test_loss[k] += v
-
-        s = ""
-        for k, v in test_loss.items():
-            test_loss[k] = round(v / (i+1), 4)
-            s += "%s %f   " % (k, test_loss[k])
-
-        print("Average loss %s" % (s))
-
-        log_file = os.path.join(out_dir, "test.json")
-        with open(log_file, "w") as f:
-            json.dump(test_loss, f)
+        # test_loss = {}
+        # for i, images in enumerate(test_loader):
+        #     loss = model.eval(images)
+        #
+        #     for k, v in loss.items():
+        #         if test_loss.get(k) is None:
+        #             test_loss[k] = 0
+        #         v = round(float(v), 4)
+        #         test_loss[k] += v
+        #
+        # s = ""
+        # for k, v in test_loss.items():
+        #     test_loss[k] = round(v / (i+1), 4)
+        #     s += "%s %f   " % (k, test_loss[k])
+        #
+        # print("Average loss %s" % (s))
+        #
+        # log_file = os.path.join(out_dir, "test.json")
+        # with open(log_file, "w") as f:
+        #     json.dump(test_loss, f)
 
