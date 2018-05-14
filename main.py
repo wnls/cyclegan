@@ -26,12 +26,13 @@ parser.add_argument('--print_every_val', default=200, type=int)
 parser.add_argument('--save_every_epoch', default=20, type=int)
 parser.add_argument('--eval_n', default=100, type=int, help='number of examples from val set to evaluate on each epoch')
 parser.add_argument('--save_n_img', default=5, type=int, help='number of images to save at test time')
+parser.add_argument('--num_workers', default=2, type=int)
 # Optimization
 parser.add_argument('--lr', default=0.0002, type=float)
 parser.add_argument('--wd', default=0, type=float)
 parser.add_argument('--batch_size', default=1, type=int)
 parser.add_argument('--dropout', default=0, type=float)
-parser.add_argument('--n_epoch', default=10, type=int)
+parser.add_argument('--n_epoch', default=100, type=int)
 parser.add_argument('--beta1', default=0.5, type=float, help='momentum term of adam')
 parser.add_argument('--lambda_A', default=10.0, type=float, help='weight for cycle loss (A -> B -> A)')
 parser.add_argument('--lambda_B', default=10.0, type=float, help='weight for cycle loss (B -> A -> B)')
@@ -76,11 +77,13 @@ if __name__ == "__main__":
         train_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "trainA"),
                                                  os.path.join(args.data_dir, "trainB"),
                                                  resize=args.resize, crop=args.crop,
-                                                 batch_size=args.batch_size, unaligned=args.unaligned, device=device)
+                                                 batch_size=args.batch_size, unaligned=args.unaligned,
+                                                 device=device, num_workers=args.num_workers)
         val_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "valA"),
                                                os.path.join(args.data_dir, "valB"),
                                                resize=args.resize, crop=args.crop,
-                                               batch_size=args.batch_size, unaligned=args.unaligned, device=device)
+                                               batch_size=args.batch_size, unaligned=args.unaligned,
+                                               device=device, num_workers=args.num_workers)
     if args.mode == "test":
         out_dir = os.path.dirname(args.pretrain_path)
         out_dir_img = os.path.join(out_dir, "images", "test")
@@ -90,7 +93,8 @@ if __name__ == "__main__":
         test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "testA"),
                                                 os.path.join(args.data_dir, "testB"),
                                                 resize=args.resize, crop=args.crop,
-                                                batch_size=args.batch_size, unaligned=args.unaligned, device=device)
+                                                batch_size=args.batch_size, unaligned=args.unaligned,
+                                                device=device, num_workers=args.num_workers)
 
     if args.vis:
         if args.port:

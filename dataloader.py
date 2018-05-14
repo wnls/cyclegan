@@ -48,7 +48,7 @@ class GANDataset(Dataset):
 
 
 ## return - DataLoader, batch dimension in (batch_size, channel, H, W)
-def get_dataloader(image_pathA, image_pathB, batch_size, resize, crop, unaligned=False, device=None):
+def get_dataloader(image_pathA, image_pathB, batch_size, resize, crop, unaligned=False, device=None, num_workers=0):
     transform = transforms.Compose([
         # resize PIL image to given size
         transforms.Resize(resize, Image.BICUBIC),
@@ -63,5 +63,5 @@ def get_dataloader(image_pathA, image_pathB, batch_size, resize, crop, unaligned
     
     batch_dataset = GANDataset(image_pathA, image_pathB, transform, unaligned, device)
 
-    return DataLoader(dataset=batch_dataset, batch_size=batch_size, shuffle=True)
+    return DataLoader(dataset=batch_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
