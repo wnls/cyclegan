@@ -18,7 +18,7 @@ parser.add_argument('--unaligned', default=True, type=bool)
 parser.add_argument('--resize', default=286, type=int)
 parser.add_argument('--crop', default=256, type=int)
 # Training
-parser.add_argument('--device_id', default=0, type=str)
+parser.add_argument('--device_id', default=0, type=int)
 parser.add_argument('--mode', default="train", type=str)
 parser.add_argument('--pretrain_path', default='', type=str)
 parser.add_argument('--print_every_train', default=100, type=int)
