@@ -68,7 +68,6 @@ class CycleGANModel:
 
         # GAN loss D_A(G_A(A))
         B_gen = self.G_A(A)
-        print(self.D_A(B_gen).shape)
         loss_G_A = self.gan_loss(self.D_A(B_gen), 1)
 
         # GAN loss D_B(G_B(B))
