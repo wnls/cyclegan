@@ -34,6 +34,7 @@ parser.add_argument('--finetune', default=False, type=bool)
 parser.add_argument('--beta1', default=0.5, type=float, help='momentum term of adam')
 parser.add_argument('--lambda_A', default=10.0, type=float, help='weight for cycle loss (A -> B -> A)')
 parser.add_argument('--lambda_B', default=10.0, type=float, help='weight for cycle loss (B -> A -> B)')
+parser.add_argument('--lambda_idt', default=0.5, type=float)
 # Files
 parser.add_argument('--out_dir', default='./checkpoints', type=str)
 parser.add_argument('--train_A_dir', default='./datasets/maps/trainA', type=str)
@@ -156,8 +157,9 @@ if __name__ == "__main__":
                     print("Iter %d/%d    loss %s" % (i, total_train_iter, s))
 
                 # visualize train loss
+                iter_id = epoch + i / len(train_loader)
                 if args.vis:
-                    opt = {'X': np.asarray([iter]), 'opts': {'showlegend': True}, 'update': 'append'}
+                    opt = {'X': np.asarray([iter_id]), 'opts': {'showlegend': True}, 'update': 'append'}
 
                     opt['win'] = win_train_G
                     for item in ['G_A', 'G_B', 'Cyc_A', 'Cyc_B', 'G']:

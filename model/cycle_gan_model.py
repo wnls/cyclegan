@@ -10,10 +10,15 @@ class CycleGANModel:
 
     def __init__(self, args):
         # Code (paper): G_A (G), G_B (F), D_A (D_Y), D_B (D_X)
-        self.G_A = GeneratorJohnson()
-        self.G_B = GeneratorJohnson()
-        self.D_A = DiscriminatorPatchGAN()
-        self.D_B = DiscriminatorPatchGAN()
+        # self.G_A = GeneratorJohnson()
+        # self.G_B = GeneratorJohnson()
+        # self.D_A = DiscriminatorPatchGAN()
+        # self.D_B = DiscriminatorPatchGAN()
+
+        self.G_A = Generator()
+        self.G_B = Generator()
+        self.D_A = Discriminator()
+        self.D_B = Discriminator()
 
         self.optimizer_G = torch.optim.Adam(itertools.chain(self.G_A.parameters(),
                                             self.G_B.parameters()),
@@ -24,9 +29,11 @@ class CycleGANModel:
 
         self.gan_loss_fn = torch.nn.MSELoss()
         self.cycle_loss_fn = torch.nn.L1Loss()
+        self.idt_loss_fn = torch.nn.L1Loss()
 
         self.lambda_A = args.lambda_A
         self.lambda_B = args.lambda_B
+        self.lambda_idt = args.lambda_idt
 
         self.A_gen_buffer = ImageBuffer()
         self.B_gen_buffer = ImageBuffer()
@@ -51,8 +58,17 @@ class CycleGANModel:
         ############################
         self.optimizer_G.zero_grad()
 
+        # Identity loss
+        if self.lambda_idt > 0:
+            loss_G_A_idt = self.idt_loss_fn(self.G_A(B), B) * self.lambda_B * self.lambda_idt
+            loss_G_B_idt = self.idt_loss_fn(self.G_B(A), A) * self.lambda_A * self.lambda_idt
+        else:
+            loss_G_A_idt = 0
+            loss_G_B_idt = 0
+
         # GAN loss D_A(G_A(A))
         B_gen = self.G_A(A)
+        print(self.D_A(B_gen).shape)
         loss_G_A = self.gan_loss(self.D_A(B_gen), 1)
 
         # GAN loss D_B(G_B(B))
@@ -68,7 +84,7 @@ class CycleGANModel:
         loss_cyc_B = self.cycle_loss_fn(B_cyc, B) * self.lambda_B
 
         # Combine
-        loss_G = loss_G_A + loss_G_B + loss_cyc_A + loss_cyc_B
+        loss_G = loss_G_A + loss_G_B + loss_cyc_A + loss_cyc_B + loss_G_A_idt + loss_G_B_idt
 
         loss_G.backward()
         self.optimizer_G.step()
@@ -103,22 +119,9 @@ class CycleGANModel:
 
         # TODO batch avg?
 
-        # # loss
-        # B_gen, loss_G_A, loss_G_B, loss_D_A, loss_D_B =  self.compute_loss(A, B)
-        #
-        # # backward and update
-        # self.optimizer_G.zero_grad()
-        # loss_G = loss_G_A + loss_G_B
-        # loss_G.backward()
-        # self.optimizer_G.step()
-        #
-        # self.optimizer_D.zero_grad()
-        # loss_D = loss_D_A + loss_D_B
-        # loss_D.backward()
-        # # loss_D_B.backward()
-        # self.optimizer_D.step()
-
-        return {'G': loss_G, 'G_A': loss_G_A, 'G_B': loss_G_B, 'Cyc_A': loss_cyc_A, 'Cyc_B': loss_cyc_B,
+        return {'G': loss_G,
+                'G_A': loss_G_A, 'Cyc_A': loss_cyc_A, 'G_A_idt': loss_G_A_idt,
+                'G_B': loss_G_B,  'Cyc_B': loss_cyc_B,  'G_B_idt': loss_G_B_idt,
                 'D': loss_D, 'D_A': loss_D_A, 'D_B': loss_D_B}
 
     def eval(self, input):
@@ -129,46 +132,69 @@ class CycleGANModel:
 
         A, B = input
 
-        B_gen = self.G_A(A)
-        A_cyc = self.G_B(B_gen)
-        A_gen = self.G_B(B)
-        B_cyc = self.G_A(A_gen)
-
         # self.save_image((A, B_gen, A_cyc, B, A_gen, B_cyc), 'datasets/maps/samples', '2018')
 
         ############################
         # G loss
         ############################
 
-        # GAN loss D_A(G_A(A))
-        loss_G_A = self.gan_loss(self.D_A(B_gen), 1)
-        # GAN loss D_B(G_B(B))
-        loss_G_B = self.gan_loss(self.D_B(A_gen), 1)
-        # Forward cycle loss
-        loss_cyc_A = self.cycle_loss_fn(A_cyc, A) * self.lambda_A
-        # Backward cycle loss
-        loss_cyc_B = self.cycle_loss_fn(B_cyc, B) * self.lambda_B
-        # Combine
-        loss_G = loss_G_A + loss_G_B + loss_cyc_A + loss_cyc_B
+        # Identity loss
+        if self.lambda_idt > 0:
+            loss_G_A_idt = self.idt_loss_fn(self.G_A(B), B) * self.lambda_B * self.lambda_idt
+            loss_G_B_idt = self.idt_loss_fn(self.G_B(A), A) * self.lambda_A * self.lambda_idt
+        else:
+            loss_G_A_idt = 0
+            loss_G_B_idt = 0
 
+        # GAN loss D_A(G_A(A))
+        B_gen = self.G_A(A)
+        loss_G_A = self.gan_loss(self.D_A(B_gen), 1)
+
+        # GAN loss D_B(G_B(B))
+        A_gen = self.G_B(B)
+        loss_G_B = self.gan_loss(self.D_B(A_gen), 1)
+
+        # Forward cycle loss
+        A_cyc = self.G_B(B_gen)
+        loss_cyc_A = self.cycle_loss_fn(A_cyc, A) * self.lambda_A
+
+        # Backward cycle loss
+        B_cyc = self.G_A(A_gen)
+        loss_cyc_B = self.cycle_loss_fn(B_cyc, B) * self.lambda_B
+
+        # Combine
+        loss_G = loss_G_A + loss_G_B + loss_cyc_A + loss_cyc_B + loss_G_A_idt + loss_G_B_idt
 
         ############################
         # D loss
         ############################
 
+        # D_A real loss
         loss_D_A_real = self.gan_loss(self.D_A(B), 1)
+
+        # D_A fake loss
+        B_gen = self.B_gen_buffer.push_and_pop(B_gen).detach()
         loss_D_A_fake = self.gan_loss(self.D_A(B_gen), 0)
-        loss_D_A = loss_D_A_real + loss_D_A_fake
 
+        loss_D_A = (loss_D_A_real + loss_D_A_fake) * 0.5
+
+        # D_B real loss
         loss_D_B_real = self.gan_loss(self.D_B(A), 1)
+
+        # D_B fake loss
+        A_gen = self.A_gen_buffer.push_and_pop(A_gen).detach()
         loss_D_B_fake = self.gan_loss(self.D_B(A_gen), 0)
-        loss_D_B = loss_D_B_real + loss_D_B_fake
 
-        loss_D = (loss_D_A + loss_D_B) * 0.5
+        loss_D_B = (loss_D_B_real + loss_D_B_fake) * 0.5
 
-        # TODO save B_gen
+        # TODO can add?
+        loss_D = loss_D_A + loss_D_B
 
-        return {'G': loss_G, 'G_A': loss_G_A, 'G_B': loss_G_B, 'Cyc_A': loss_cyc_A, 'Cyc_B': loss_cyc_B,
+        # TODO batch avg?
+
+        return {'G': loss_G,
+                'G_A': loss_G_A, 'Cyc_A': loss_cyc_A, 'G_A_idt': loss_G_A_idt,
+                'G_B': loss_G_B, 'Cyc_B': loss_cyc_B, 'G_B_idt': loss_G_B_idt,
                 'D': loss_D, 'D_A': loss_D_A, 'D_B': loss_D_B}
 
     def compute_loss(self, A, B):
