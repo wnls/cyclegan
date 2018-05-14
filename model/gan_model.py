@@ -12,7 +12,7 @@ def norm_relu_layer(out_channel, norm, relu):
     elif norm == 'instancenorm':
         norm_layer = nn.InstanceNorm2d(out_channel)
     elif norm is None:
-        norm_layer = nn.Dropout2d(1)  # Identity
+        norm_layer = nn.Dropout2d(0)  # Identity
     else:
         raise Exception("Norm not specified!")
 
