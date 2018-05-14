@@ -82,7 +82,7 @@ if __name__ == "__main__":
         val_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "valA"),
                                                os.path.join(args.data_dir, "valB"),
                                                resize=args.resize, crop=args.crop,
-                                               batch_size=args.batch_size, unaligned=args.unaligned,
+                                               batch_size=1, unaligned=args.unaligned, #TODO val batch size
                                                device=device, num_workers=args.num_workers)
     if args.mode == "test":
         out_dir = os.path.dirname(args.pretrain_path)
@@ -93,7 +93,7 @@ if __name__ == "__main__":
         test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "testA"),
                                                 os.path.join(args.data_dir, "testB"),
                                                 resize=args.resize, crop=args.crop,
-                                                batch_size=args.batch_size, unaligned=args.unaligned,
+                                                batch_size=1, unaligned=args.unaligned,
                                                 device=device, num_workers=args.num_workers)
 
     if args.vis:
@@ -145,7 +145,7 @@ if __name__ == "__main__":
         stats['train_loss'] = {}
         stats['val_loss'] = {}
 
-        total_train_iter = math.ceil(len(train_loader) / args.batch_size)
+        total_train_iter = len(train_loader)
         eval_n = min(args.eval_n, len(val_loader))
         total_val_iter = math.ceil(eval_n / args.batch_size)
 
