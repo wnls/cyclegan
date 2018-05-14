@@ -19,7 +19,7 @@ def norm_relu_layer(out_channel, norm, relu):
     if relu is None:
         relu_layer = nn.ReLU()
     else:
-        relu_layer = nn.LeakyReLU(relu)
+        relu_layer = nn.LeakyReLU(relu, inplace=True)
 
     return norm_layer, relu_layer
 
@@ -145,14 +145,14 @@ class DiscriminatorPatchGAN(Discriminator):
     Networks > by Philip Isola, et al.
     """
 
-    def __init__(self, image_channel=3, use_bias=True, norm='instancenorm', sigmoid=False):
+    def __init__(self, image_channel=3, kernel_size=4, use_bias=True, norm='instancenorm', sigmoid=False):
         super().__init__('PatchGAN')
         model = []
-        model += [Conv_Norm_ReLU(image_channel, 64, (4, 4), padding=1, stride=2, bias=use_bias, relu=0.2, norm=None), # C64
-                  Conv_Norm_ReLU(64, 128, (4, 4), padding=1, stride=2, bias=use_bias, relu=0.2, norm=norm), # C128
-                  Conv_Norm_ReLU(128, 256, (4, 4), padding=1, stride=2, bias=use_bias, relu=0.2, norm=norm), # C256
-                  Conv_Norm_ReLU(256, 512, (4, 4), padding=1, stride=2, bias=use_bias, relu=0.2, norm=norm), # C512
-                  nn.Conv2d(512, 1, (1, 1), padding=0, stride=1, bias=use_bias)
+        model += [Conv_Norm_ReLU(image_channel, 64, kernel_size, padding=1, stride=2, bias=use_bias, relu=0.2, norm=None), # C64
+                  Conv_Norm_ReLU(64, 128, kernel_size, padding=1, stride=2, bias=use_bias, relu=0.2, norm=norm), # C128
+                  Conv_Norm_ReLU(128, 256, kernel_size, padding=1, stride=2, bias=use_bias, relu=0.2, norm=norm), # C256
+                  Conv_Norm_ReLU(256, 512, kernel_size, padding=1, bias=use_bias, relu=0.2, norm=norm), # C512
+                  nn.Conv2d(512, 1, kernel_size, padding=1, bias=use_bias)
                   ]
         if sigmoid:
             model += [nn.Sigmoid()]
