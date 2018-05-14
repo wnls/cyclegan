@@ -265,7 +265,7 @@ class CycleGANModel:
         img_B, fake_B, cyc_B = self.tensor2image(B), self.tensor2image(B_gen), self.tensor2image(B_cyc)
 
         sources = np.vstack((img_A, img_B))
-        targets = np.vstack((fake_A, fake_B))
+        targets = np.vstack((fake_B, fake_A))
         cycles = np.vstack((cyc_A, cyc_B))
 
         merged = self.merge_images(sources, targets, cycles)
