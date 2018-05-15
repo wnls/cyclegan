@@ -88,6 +88,7 @@ class CycleGANModel:
         loss_G.backward()
         self.optimizer_G.step()
 
+        # self.save_image((A, B_gen, A_cyc, B, A_gen, B_cyc), out_dir_img, "train_ep_%d" % epoch)
         ############################
         # D loss
         ############################
@@ -261,14 +262,12 @@ class CycleGANModel:
         """ input is a tuple of the images we want to compare """
         A, B_gen, A_cyc, B, A_gen, B_cyc = input
 
-        img_A, fake_A, cyc_A = self.tensor2image(A), self.tensor2image(A_gen), self.tensor2image(A_cyc)
-        img_B, fake_B, cyc_B = self.tensor2image(B), self.tensor2image(B_gen), self.tensor2image(B_cyc)
+        sources = torch.cat((A, B))
+        targets = torch.cat((B_gen, A_gen))
+        cycles = torch.cat((A_cyc, B_cyc))
 
-        sources = np.vstack((img_A, img_B))
-        targets = np.vstack((fake_B, fake_A))
-        cycles = np.vstack((cyc_A, cyc_B))
+        merged = self.tensor2image(self.merge_images(sources, targets, cycles))
 
-        merged = self.merge_images(sources, targets, cycles)
         path = os.path.join(filepath, '%s.png' % fname)
         scipy.misc.imsave(path, merged)
         print('saved %s' % path)
@@ -279,9 +278,10 @@ class CycleGANModel:
         return image.astype(np.uint8)
 
     def merge_images(self, sources, targets, cycles):
-        row, _, h, w = sources.shape
+        row, _, h, w = sources.size()
+        # row, _, h, w = sources.shape
         # row = int(np.sqrt(batch_size))
-        merged = np.zeros([3, row * h, w * 3])
+        merged = torch.zeros(3, row * h, w * 3)
         for idx, (s, t, c) in enumerate(zip(sources, targets, cycles)):
             i = idx
             # i = (idx + 1) // row
@@ -292,7 +292,7 @@ class CycleGANModel:
             merged[:, i * h:(i + 1) * h, 0:w] = s
             merged[:, i * h:(i + 1) * h, w:2 * w] = t
             merged[:, i * h:(i + 1) * h, 2 * w:3 * w] = c
-        return merged.transpose(1, 2, 0)
+        return merged.permute(1, 2, 0)
 
 class ImageBuffer():
     """
