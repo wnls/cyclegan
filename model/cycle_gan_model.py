@@ -45,6 +45,11 @@ class CycleGANModel:
         self.D_A.to(device)
         self.D_B.to(device)
 
+        for state in itertools.chain(self.optimizer_G.state.values(), self.optimizer_D.state.values()):
+            for k, v in state.items():
+                if isinstance(v, torch.Tensor):
+                    state[k] = v.to(device)
+
     def train(self, input, save, out_dir_img, epoch):
         self.G_A.train()
         self.G_B.train()
