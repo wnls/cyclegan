@@ -51,10 +51,10 @@ class CycleGANModel:
                     state[k] = v.to(device)
 
     def train(self, input, save, out_dir_img, epoch):
-        self.G_A.train()
-        self.G_B.train()
-        self.D_A.train()
-        self.D_B.train()
+        # self.G_A.train()
+        # self.G_B.train()
+        # self.D_A.train()
+        # self.D_B.train()
 
         A, B = input
 
@@ -132,10 +132,10 @@ class CycleGANModel:
                 'D': loss_D, 'D_A': loss_D_A, 'D_B': loss_D_B}
 
     def eval(self, input, save, out_dir_img, epoch):
-        self.G_A.eval()
-        self.G_B.eval()
-        self.D_A.eval()
-        self.D_B.eval()
+        # self.G_A.eval()
+        # self.G_B.eval()
+        # self.D_A.eval()
+        # self.D_B.eval()
 
         A, B = input
 
