@@ -24,7 +24,7 @@ def plot_sub(train_ax, losses, mode="Train"):
     ax0, ax1, ax2 = train_ax
     length = len(losses["G"])
     if mode == "Train":
-        ite = np.arange(length) / 548.0
+        ite = np.arange(length) / (1096.0 / args.bs)
     else:
         ite = np.arange(length) / 100.0
 
@@ -60,14 +60,60 @@ def plot_sub(train_ax, losses, mode="Train"):
     ax2.tick_params(axis='both', which='major', labelsize=16)
     ax2.legend(fontsize=16)
 
+# parser = argparse.ArgumentParser()
+# parser.add_argument('--dir', default="", type=str)
+# args = parser.parse_args()
+#
+# # fname = os.path.join("checkpoints", "train.json")
+# # outname = os.path.join("checkpoints", "result.png")
+# fname = os.path.join(args.dir, "train.json")
+# outname = os.path.join(args.dir, "result.png")
+# with open(fname) as f:
+#     stats = json.load(f)
+#     plot(stats, outname)
+
+def print_epoch_ave(log_file):
+    for set in ave_stats:
+        for loss in ave_stats[set]:
+            print("set = %s, %s = %f" %(set, loss, ave_stats[set][loss][-1]))
+
+    # with open(log_file, "w") as f:
+    #             json.dump(ave_stats, f)
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--dir', default="", type=str)
+parser.add_argument('--dir', default="", nargs='+', type=str)
+parser.add_argument('--bs', default=1, type=int, help='batch size')
 args = parser.parse_args()
 
-# fname = os.path.join("checkpoints", "train.json")
-# outname = os.path.join("checkpoints", "result.png")
-fname = os.path.join(args.dir, "train.json")
-outname = os.path.join(args.dir, "result.png")
-with open(fname) as f:
-    stats = json.load(f)
-    plot(stats, outname)
+new_stats = {}
+ave_stats = {}
+
+
+for folder in args.dir:
+    fname = os.path.join(folder, "train.json")
+    with open(fname) as f:
+        stats = json.load(f)
+        loss_cats = stats.keys()
+        for cat in loss_cats:
+            if cat not in new_stats.keys():
+                new_stats[cat] = {}
+                ave_stats[cat] = {}
+            for loss in stats[cat].keys():
+                if loss not in new_stats[cat].keys():
+                    new_stats[cat][loss] = []
+                    ave_stats[cat][loss] = []
+
+                new_stats[cat][loss] += stats[cat][loss]
+
+                # calculate average loss in each epoch
+                if cat == "train_loss":
+                    ave_loss = np.mean([ stats[cat][loss][i:i + 1096] for i in range(0, len(stats[cat][loss]), 1096) ], axis=1).tolist()
+                if cat == "val_loss":
+                    ave_loss = np.mean([ stats[cat][loss][i:i + 100] for i in range(0, len(stats[cat][loss]), 100) ], axis=1).tolist()
+                ave_stats[cat][loss] += ave_loss
+
+
+outname = os.path.join(args.dir[0], "result.png")
+log_file = os.path.join(args.dir[0], "epoch_ave.json")
+plot(new_stats, outname)
+print_epoch_ave(log_file)
