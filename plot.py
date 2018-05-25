@@ -9,8 +9,8 @@ import numpy as np
 def plot(dict, figname="./checkpoints/results.png"):
     fig, (train_ax, val_ax) = plt.subplots(nrows=2, ncols=3, figsize=(20,10))
 
-    plot_sub(train_ax, stats["train_loss"], "Train")
-    plot_sub(val_ax, stats["val_loss"], "Val")
+    plot_sub(train_ax, dict["train_loss"], "Train")
+    plot_sub(val_ax, dict["val_loss"], "Val")
 
     fig.tight_layout()
     plt.savefig(figname)
