@@ -111,13 +111,13 @@ class GeneratorJohnson(Generator):
     by Justin Johnson, et al.
     """
 
-    def __init__(self, image_channel=3, use_bias=True, norm='instancenorm'):
+    def __init__(self, image_channel=3, use_bias=True, norm='instancenorm', n_res_blocks=6):
         super().__init__('Johnson')
         model = []
         model += [Conv_Norm_ReLU(image_channel, 32, (7, 7), padding=3, stride=1, bias=use_bias, norm=norm),  # c7s1-32
                   Conv_Norm_ReLU(32, 64, (3, 3), padding=1, stride=2, bias=use_bias, norm=norm),  # d64
                   Conv_Norm_ReLU(64, 128, (3, 3), padding=1, stride=2, bias=use_bias, norm=norm)]  # d128
-        for i in range(6):
+        for i in range(n_res_blocks):
             model += [ResidualLayer(128, (3, 3), final_relu=False, bias=use_bias)]  # R128
         model += [Deconv_Norm_ReLU(128, 64, (3, 3), padding=1, output_padding=1, stride=2, bias=use_bias, norm=norm), # u64
                   Deconv_Norm_ReLU(64, 32, (3, 3), padding=1, output_padding=1, stride=2, bias=use_bias, norm=norm), # u32
@@ -131,7 +131,6 @@ class GeneratorJohnson(Generator):
         :return: output: (N x channels x H x W) with numbers of range [-1, 1] (since we use tanh())
         """
         return self.model(input)
-
 
 class Discriminator(nn.Module):
     def __init__(self, type):
@@ -165,92 +164,76 @@ class DiscriminatorPatchGAN(Discriminator):
         """
         return self.model(input)
 
-class ResidualBlock(nn.Module):
-    def __init__(self, in_features):
-        super(ResidualBlock, self).__init__()
 
-        conv_block = [  nn.ReflectionPad2d(1),
-                        nn.Conv2d(in_features, in_features, 3),
-                        nn.InstanceNorm2d(in_features),
-                        nn.ReLU(inplace=True),
-                        nn.ReflectionPad2d(1),
-                        nn.Conv2d(in_features, in_features, 3),
-                        nn.InstanceNorm2d(in_features)  ]
+class ResidualBlock2(nn.Module):
+    def __init__(self, in_features, norm_layer=nn.InstanceNorm2d):
+        super(ResidualBlock2, self).__init__()
+
+        conv_block = [nn.ReflectionPad2d(1),
+                      nn.Conv2d(in_features, in_features, 3),
+                      norm_layer(in_features),
+                      nn.ReLU(inplace=True),
+                      nn.ReflectionPad2d(1),
+                      nn.Conv2d(in_features, in_features, 3),
+                      norm_layer(in_features)]
 
         self.conv_block = nn.Sequential(*conv_block)
 
     def forward(self, x):
         return x + self.conv_block(x)
 
-class GeneratorAitorzip(Generator):
-    def __init__(self, input_nc=3, output_nc=3, n_residual_blocks=9):
-        super(GeneratorAitorzip, self).__init__('Aitorzip')
 
-        # Initial convolution block
-        model = [   nn.ReflectionPad2d(3),
-                    nn.Conv2d(input_nc, 64, 7),
-                    nn.InstanceNorm2d(64),
-                    nn.ReLU(inplace=True) ]
+class GeneratorJohnson2(Generator):
+    """
+    Generator with 9 residual blocks and reflection padding.
+    """
 
-        # Downsampling
-        in_features = 64
-        out_features = in_features*2
-        for _ in range(2):
-            model += [  nn.Conv2d(in_features, out_features, 3, stride=2, padding=1),
-                        nn.InstanceNorm2d(out_features),
-                        nn.ReLU(inplace=True) ]
-            in_features = out_features
-            out_features = in_features*2
+    def __init__(self, image_channel=3, norm='instancenorm', n_res_blocks=9):
+        super().__init__('Johnson')
+        if norm == 'batchnorm':
+            norm_layer = nn.BatchNorm2d
+        elif norm == 'instancenorm':
+            norm_layer = nn.InstanceNorm2d
+        else:
+            raise Exception("Norm not specified!")
+
+        # Downsample
+        model = [nn.ReflectionPad2d(3),
+                 nn.Conv2d(image_channel, 64, 7),
+                 norm_layer(64),
+                 nn.ReLU(inplace=True)]
+
+        in_channels = 64
+        out_channels = in_channels * 2
+        for i in range(2):
+            model += [nn.Conv2d(in_channels, out_channels, 3, stride=2, padding=1),
+                      norm_layer(out_channels),
+                      nn.ReLU(inplace=True)]
+            in_channels = out_channels
+            out_channels = in_channels * 2
 
         # Residual blocks
-        for _ in range(n_residual_blocks):
-            model += [ResidualBlock(in_features)]
+        for i in range(n_res_blocks):
+            model += [ResidualBlock2(in_channels, norm_layer=norm_layer)]
 
-        # Upsampling
-        out_features = in_features//2
-        for _ in range(2):
-            model += [  nn.ConvTranspose2d(in_features, out_features, 3, stride=2, padding=1, output_padding=1),
-                        nn.InstanceNorm2d(out_features),
-                        nn.ReLU(inplace=True) ]
-            in_features = out_features
-            out_features = in_features//2
+        # Upsample
+        out_channels = in_channels // 2
+        for i in range(2):
+            model += [nn.ConvTranspose2d(in_channels, out_channels, 3, stride=2, padding=1, output_padding=1),
+                      norm_layer(out_channels),
+                      nn.ReLU(inplace=True)]
+            in_channels = out_channels
+            out_channels = in_channels // 2
 
-        # Output layer
-        model += [  nn.ReflectionPad2d(3),
-                    nn.Conv2d(64, output_nc, 7),
-                    nn.Tanh() ]
-
-        self.model = nn.Sequential(*model)
-
-    def forward(self, x):
-        return self.model(x)
-
-class DiscriminatorAitorzip(Discriminator):
-    def __init__(self, input_nc=3):
-        super(DiscriminatorAitorzip, self).__init__('Aitorzip')
-
-        # A bunch of convolutions one after another
-        model = [   nn.Conv2d(input_nc, 64, 4, stride=2, padding=1),
-                    nn.LeakyReLU(0.2, inplace=True) ]
-
-        model += [  nn.Conv2d(64, 128, 4, stride=2, padding=1),
-                    nn.InstanceNorm2d(128),
-                    nn.LeakyReLU(0.2, inplace=True) ]
-
-        model += [  nn.Conv2d(128, 256, 4, stride=2, padding=1),
-                    nn.InstanceNorm2d(256),
-                    nn.LeakyReLU(0.2, inplace=True) ]
-
-        model += [  nn.Conv2d(256, 512, 4, padding=1),
-                    nn.InstanceNorm2d(512),
-                    nn.LeakyReLU(0.2, inplace=True) ]
-
-        # FCN classification layer
-        model += [nn.Conv2d(512, 1, 4, padding=1)]
+        model += [nn.ReflectionPad2d(3),
+                  nn.Conv2d(64, 3, 7),
+                  nn.Tanh()]
 
         self.model = nn.Sequential(*model)
 
-    def forward(self, x):
-        x =  self.model(x)
-        # Average pooling and flatten
-        return F.avg_pool2d(x, x.size()[2:]).view(x.size()[0], -1)
+
+    def forward(self, input):
+        return self.model(input)
+
+
+

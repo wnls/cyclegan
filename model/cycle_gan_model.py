@@ -10,15 +10,12 @@ class CycleGANModel:
 
     def __init__(self, args):
         # Code (paper): G_A (G), G_B (F), D_A (D_Y), D_B (D_X)
-        self.G_A = GeneratorJohnson()
-        self.G_B = GeneratorJohnson()
+        # self.G_A = GeneratorJohnson()
+        # self.G_B = GeneratorJohnson()
+        self.G_A = GeneratorJohnson2(n_res_blocks=9)
+        self.G_B = GeneratorJohnson2(n_res_blocks=9)
         self.D_A = DiscriminatorPatchGAN()
         self.D_B = DiscriminatorPatchGAN()
-
-        # self.G_A = Generator()
-        # self.G_B = Generator()
-        # self.D_A = Discriminator()
-        # self.D_B = Discriminator()
 
         self.optimizer_G = torch.optim.Adam(itertools.chain(self.G_A.parameters(),
                                             self.G_B.parameters()),
