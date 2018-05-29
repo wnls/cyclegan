@@ -69,7 +69,7 @@ class CycleGANModel:
 
         A, B = input
 
-        for g_idx in self.g_steps:
+        for g_idx in range(self.g_steps):
             ############################
             # G loss
             ############################
@@ -113,7 +113,7 @@ class CycleGANModel:
 
             # self.save_image((A, B_gen, A_cyc, B, A_gen, B_cyc), out_dir_img, "train_ep_%d" % epoch)
 
-        for d_idx in self.d_steps:
+        for d_idx in range(self.d_steps):
             ############################
             # D loss
             ############################
