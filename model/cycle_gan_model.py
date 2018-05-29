@@ -143,7 +143,7 @@ class CycleGANModel:
             # D_B fake loss
             A_gen_pool = self.A_gen_buffer.push_and_pop(A_gen).detach()
             if self.use_wgan:
-                loss_D_B_fake = -torch.mean(self.D_B(A_gen_pool))
+                loss_D_B_fake = torch.mean(self.D_B(A_gen_pool))
             else:
                 loss_D_B_fake = self.gan_loss(self.D_B(A_gen_pool), 0)
 
