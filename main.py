@@ -30,6 +30,8 @@ parser.add_argument('--num_workers', default=0, type=int)
 parser.add_argument('--init_type', default='normal', type=str, help='initialization for weights for G and D')
 # Optimization
 parser.add_argument('--lr', default=0.0002, type=float)
+parser.add_argument('--lr_decay_start', default=100, type=int, help='eppch to start lr decay')
+parser.add_argument('--lr_decay_n', default=100, type=int, help='number of epochs to decay lr to 0')
 parser.add_argument('--wd', default=0, type=float)
 parser.add_argument('--batch_size', default=1, type=int)
 parser.add_argument('--dropout', default=0, type=float)
@@ -139,6 +141,7 @@ if __name__ == "__main__":
             checkpoint = torch.load(args.pretrain_path)
             model.load_state(checkpoint['model_state'])
 
+    model.set_start_epoch(start_epoch)
     model.to(device)
 
     if args.mode == "train":
@@ -274,6 +277,9 @@ if __name__ == "__main__":
                 # model_file = file_format + '_%d.pt' % (epoch)
                 print("\nSaving model to %s\n" % (model_file))
                 torch.save({'epoch': epoch, 'model_state': model.save_state()}, model_file)
+
+            # update scheduler
+            model.update_scheduler()
 
         # save model from last epoch
         model_file = os.path.join(out_dir, "epoch_%d.pt" % epoch)

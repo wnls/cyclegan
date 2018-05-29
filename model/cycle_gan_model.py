@@ -10,6 +10,9 @@ from torch.nn import init
 class CycleGANModel:
 
     def __init__(self, args):
+        self.start_epoch = 0
+        self.args = args
+
         # Code (paper): G_A (G), G_B (F), D_A (D_Y), D_B (D_X)
         # self.G_A = GeneratorJohnson()
         # self.G_B = GeneratorJohnson()
@@ -24,6 +27,9 @@ class CycleGANModel:
         self.optimizer_D = torch.optim.Adam(itertools.chain(self.D_A.parameters(),
                                             self.D_B.parameters()),
                                             lr=args.lr, betas=(args.beta1, 0.999))
+
+        self.scheduler_G = torch.optim.lr_scheduler.LambdaLR(self.optimizer_G, lr_lambda=self.lr_lambda)
+        self.scheduler_D = torch.optim.lr_scheduler.LambdaLR(self.optimizer_D, lr_lambda=self.lr_lambda)
 
         self.init_type = args.init_type
         if args.init_type is not None:
@@ -47,17 +53,27 @@ class CycleGANModel:
         classname = m.__class__.__name__
         if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
             if self.init_type == 'normal':
-                init.normal(m.weight.data, 0.0, 0.02)
+                init.normal_(m.weight.data, 0.0, 0.02)
             elif self.init_type == 'xavier':
                 init.xavier_normal(m.weight.data, gain=0.02)
             elif self.init_type == 'kaiming':
                 init.kaiming_normal(m.weight.data, a=0, mode='fan_in')
             else:
-                raise NotImplementedError('initialization method [%s] not implemented' % init_type)
+                raise NotImplementedError('initialization method [%s] not implemented' % self.init_type)
         elif classname.find('BatchNorm2d') != -1:
             init.normal(m.weight.data, 1.0, 0.02)
             init.constant(m.bias.data, 0.0)
 
+    def lr_lambda(self, epoch):
+        return 1.0 - max(0, epoch + self.start_epoch - self.args.lr_decay_start) / (self.args.lr_decay_n + 1)
+
+    def update_scheduler(self):
+        self.scheduler_G.step()
+        self.scheduler_D.step()
+        print('learning rate = %.7f' % self.optimizer_G.param_groups[0]['lr'])
+
+    def set_start_epoch(self, epoch):
+        self.start_epoch = epoch
 
     def to(self, device):
         self.G_A.to(device)
