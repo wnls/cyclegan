@@ -12,7 +12,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', default='./checkpoints/0515091105_no idt_bs2/images/', type=str)
-parser.add_argument('--generated', default=True, type=bool)
+parser.add_argument('--generated', default=False, action='store_true')
 parser.add_argument('--batch_size', default=1, type=int)
 parser.add_argument('--eval_img', default='target', type=str)
 parser.add_argument('--img_ext', default='png', type=str)
