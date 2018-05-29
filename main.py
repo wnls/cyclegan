@@ -41,6 +41,7 @@ parser.add_argument('--lambda_idt', default=0.5, type=float)
 parser.add_argument('--use_wgan', default=False, action='store_true')
 parser.add_argument('--d_steps', default=1, type=int)
 parser.add_argument('--g_steps', default=1, type=int)
+parser.add_argument('--wgan_c', default=0.01, type=float)
 # Files
 parser.add_argument('--out_dir', default='./checkpoints', type=str)
 parser.add_argument('--data_dir', default='./datasets/maps/', type=str)
