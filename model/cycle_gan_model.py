@@ -5,6 +5,7 @@ import os
 from .gan_model import *
 import scipy.misc
 import random
+from torch.nn import init
 
 class CycleGANModel:
 
@@ -24,6 +25,13 @@ class CycleGANModel:
                                             self.D_B.parameters()),
                                             lr=args.lr, betas=(args.beta1, 0.999))
 
+        self.init_type = args.init_type
+        if args.init_type is not None:
+            self.G_A.apply(self.init_weights)
+            self.G_B.apply(self.init_weights)
+            self.D_A.apply(self.init_weights)
+            self.D_B.apply(self.init_weights)
+
         self.gan_loss_fn = torch.nn.MSELoss()
         self.cycle_loss_fn = torch.nn.L1Loss()
         self.idt_loss_fn = torch.nn.L1Loss()
@@ -34,6 +42,21 @@ class CycleGANModel:
 
         self.A_gen_buffer = ImageBuffer()
         self.B_gen_buffer = ImageBuffer()
+
+    def init_weights(self, m):
+        classname = m.__class__.__name__
+        if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
+            if self.init_type == 'normal':
+                init.normal(m.weight.data, 0.0, 0.02)
+            elif self.init_type == 'xavier':
+                init.xavier_normal(m.weight.data, gain=0.02)
+            elif self.init_type == 'kaiming':
+                init.kaiming_normal(m.weight.data, a=0, mode='fan_in')
+            else:
+                raise NotImplementedError('initialization method [%s] not implemented' % init_type)
+        elif classname.find('BatchNorm2d') != -1:
+            init.normal(m.weight.data, 1.0, 0.02)
+            init.constant(m.bias.data, 0.0)
 
 
     def to(self, device):

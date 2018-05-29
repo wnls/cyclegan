@@ -27,6 +27,7 @@ parser.add_argument('--save_every_epoch', default=20, type=int)
 parser.add_argument('--eval_n', default=100, type=int, help='number of examples from val set to evaluate on each epoch')
 parser.add_argument('--save_n_img', default=5, type=int, help='number of images to save at test time')
 parser.add_argument('--num_workers', default=0, type=int)
+parser.add_argument('--init_type', default='normal', type=str, help='initialization for weights for G and D')
 # Optimization
 parser.add_argument('--lr', default=0.0002, type=float)
 parser.add_argument('--wd', default=0, type=float)
