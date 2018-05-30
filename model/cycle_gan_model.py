@@ -64,8 +64,8 @@ class CycleGANModel:
             else:
                 raise NotImplementedError('initialization method [%s] not implemented' % self.init_type)
         elif classname.find('BatchNorm2d') != -1:
-            init.normal(m.weight.data, 1.0, 0.02)
-            init.constant(m.bias.data, 0.0)
+            init.normal_(m.weight.data, 1.0, 0.02)
+            init.constant_(m.bias.data, 0.0)
 
     def lr_lambda(self, epoch):
         return 1.0 - max(0, epoch + self.start_epoch - self.args.lr_decay_start) / (self.args.lr_decay_n + 1)
