@@ -246,15 +246,17 @@ class CycleGANModel:
                 'G_B': loss_G_B, 'Cyc_B': loss_cyc_B, 'G_B_idt': loss_G_B_idt,
                 'D': loss_D, 'D_A': loss_D_A, 'D_B': loss_D_B}
 
-    def test(self, images, i, out_dir_img):
+    def test(self, images, i, out_dir_img, collage=False):
         A, B, A_gt, B_gt, index_A, index_B = images
         B_gen = self.G_A(A)
-        A_gen = self.G_B(B)
-        A_cyc = self.G_B(B_gen)
-        B_cyc = self.G_A(A_gen)
+        if collage:
+            A_gen = self.G_B(B)
+            A_cyc = self.G_B(B_gen)
+            B_cyc = self.G_A(A_gen)
 
-        self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt), out_dir_img, "test_%d" % (i+1))
-        # self.save_image(B_gen, out_dir_img, "test_%d" % (i+1), test=True)
+            self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt), out_dir_img, "test_%d" % (i+1))
+        else:
+            self.save_image(B_gen, out_dir_img, "test_%d" % (i+1), test=True)
 
     def compute_loss(self, A, B):
         B_gen = self.G_A(A)

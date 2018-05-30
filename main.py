@@ -26,6 +26,7 @@ parser.add_argument('--print_every_val', default=200, type=int)
 parser.add_argument('--save_every_epoch', default=20, type=int)
 parser.add_argument('--eval_n', default=100, type=int, help='number of examples from val set to evaluate on each epoch')
 parser.add_argument('--save_n_img', default=5, type=int, help='number of images to save at test time')
+parser.add_argument('--test_collage', default=False, action='store_true', help='also save A_gen, cyc, gt; otherwise just B_gen')
 parser.add_argument('--num_workers', default=0, type=int)
 parser.add_argument('--init_type', default='normal', type=str, help='initialization for weights for G and D')
 # Optimization
@@ -292,7 +293,7 @@ if __name__ == "__main__":
         for i, images in enumerate(test_loader):
             if i >= args.save_n_img:
                 break
-            model.test(images, i, out_dir_img)
+            model.test(images, i, out_dir_img, args.test_collage)
 
         # test_loss = {}
         # for i, images in enumerate(test_loader):
