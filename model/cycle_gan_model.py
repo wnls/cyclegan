@@ -92,7 +92,7 @@ class CycleGANModel:
         # self.D_A.train()
         # self.D_B.train()
 
-        A, B = input
+        A, B, A_gt, B_gt, index_A, index_B = input
 
         ############################
         # G loss
@@ -160,7 +160,8 @@ class CycleGANModel:
 
         # save image
         if save:
-            self.save_image((A, B_gen, A_cyc, B, A_gen, B_cyc), out_dir_img, "train_ep_%d" % epoch)
+            self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt),
+                            out_dir_img, "train_ep_%d_A%d_B%d" % (epoch, index_A, index_B))
 
         return {'G': loss_G,
                 'G_A': loss_G_A, 'Cyc_A': loss_cyc_A, 'G_A_idt': loss_G_A_idt,
@@ -174,7 +175,7 @@ class CycleGANModel:
         # self.D_B.eval()
 
         with torch.no_grad():
-            A, B = input
+            A, B, A_gt, B_gt, index_A, index_B = input
 
 
             ############################
@@ -237,7 +238,8 @@ class CycleGANModel:
 
         # save image
         if save:
-            self.save_image((A, B_gen, A_cyc, B, A_gen, B_cyc), out_dir_img, "val_ep_%d" % epoch)
+            self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt),
+                            out_dir_img, "val_ep_%d_A%d_B%d" % (epoch, index_A, index_B))
 
         return {'G': loss_G,
                 'G_A': loss_G_A, 'Cyc_A': loss_cyc_A, 'G_A_idt': loss_G_A_idt,
@@ -245,13 +247,14 @@ class CycleGANModel:
                 'D': loss_D, 'D_A': loss_D_A, 'D_B': loss_D_B}
 
     def test(self, images, i, out_dir_img):
-        A, B = images
+        A, B, A_gt, B_gt, index_A, index_B = images
         B_gen = self.G_A(A)
         A_gen = self.G_B(B)
         A_cyc = self.G_B(B_gen)
         B_cyc = self.G_A(A_gen)
 
-        self.save_image((A, B_gen, A_cyc, B, A_gen, B_cyc), out_dir_img, "test_%d" % i)
+        self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt), out_dir_img, "test_%d" % (i+1))
+        # self.save_image(B_gen, out_dir_img, "test_%d" % (i+1), test=True)
 
     def compute_loss(self, A, B):
         B_gen = self.G_A(A)
@@ -299,31 +302,42 @@ class CycleGANModel:
                 'optimG': self.optimizer_G.state_dict(),
                 'optimD': self.optimizer_D.state_dict()}
 
-    def save_image(self, input, filepath, fname):
+    def save_image(self, input, filepath, fname, test=False):
         """ input is a tuple of the images we want to compare """
-        A, B_gen, A_cyc, B, A_gen, B_cyc = input
+        # A, B_gen, A_cyc, B, A_gen, B_cyc = input
 
-        sources = torch.cat((A, B))
-        targets = torch.cat((B_gen, A_gen))
-        cycles = torch.cat((A_cyc, B_cyc))
 
-        merged = self.tensor2image(self.merge_images(sources, targets, cycles))
+        if test:
+            B_gen= input
+            img = self.tensor2image(B_gen)
+            path = os.path.join(filepath, 'B_gen_%s.png' % fname)
+            scipy.misc.imsave(path, img.squeeze().transpose(1,2,0))
+            print('saved %s' % path)
+        else:
+            A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt = input
 
-        path = os.path.join(filepath, '%s.png' % fname)
-        scipy.misc.imsave(path, merged)
-        print('saved %s' % path)
+            sources = torch.cat((A, B))
+            gens = torch.cat((B_gen, A_gen))
+            cycles = torch.cat((A_cyc, B_cyc))
+            gts = torch.cat((A_gt, B_gt))
+
+            merged = self.tensor2image(self.merge_images(sources, gens, cycles, gts))
+
+            path = os.path.join(filepath, '%s.png' % fname)
+            scipy.misc.imsave(path, merged)
+            print('saved %s' % path)
 
     def tensor2image(self, input):
         image_data = input.data
         image = 127.5 * (image_data.cpu().float().numpy() + 1.0)
         return image.astype(np.uint8)
 
-    def merge_images(self, sources, targets, cycles):
+    def merge_images(self, sources, gens, cycles, gts):
         row, _, h, w = sources.size()
         # row, _, h, w = sources.shape
         # row = int(np.sqrt(batch_size))
-        merged = torch.zeros(3, row * h, w * 3)
-        for idx, (s, t, c) in enumerate(zip(sources, targets, cycles)):
+        merged = torch.zeros(3, row * h, w * 4)
+        for idx, (s, gt, g, c) in enumerate(zip(sources, gts, gens, cycles)):
             i = idx
             # i = (idx + 1) // row
             # j = idx % row
@@ -331,8 +345,9 @@ class CycleGANModel:
             # merged[:, i * h:(i + 1) * h, (j*2+1) * w:(j * 2 + 2) * w] = t
             # merged[:, i * h:(i + 1) * h, (j*2+2) * w:(j * 2 + 3) * w] = c
             merged[:, i * h:(i + 1) * h, 0:w] = s
-            merged[:, i * h:(i + 1) * h, w:2 * w] = t
-            merged[:, i * h:(i + 1) * h, 2 * w:3 * w] = c
+            merged[:, i * h:(i + 1) * h, w:2 * w] = gt
+            merged[:, i * h:(i + 1) * h, 2 * w:3 * w] = g
+            merged[:, i * h:(i + 1) * h, 3 * w:4 * w] = c
         return merged.permute(1, 2, 0)
 
 class ImageBuffer():

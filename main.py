@@ -86,7 +86,7 @@ if __name__ == "__main__":
                                                os.path.join(args.data_dir, "valB"),
                                                resize=args.resize, crop=args.crop,
                                                batch_size=1, unaligned=args.unaligned, #TODO val batch size
-                                               device=device, num_workers=args.num_workers)
+                                               device=device, num_workers=args.num_workers, test=True)
     if args.mode == "test":
         out_dir = os.path.dirname(args.pretrain_path)
         out_dir_img = os.path.join(out_dir, "images", "test")
@@ -97,7 +97,7 @@ if __name__ == "__main__":
                                                 os.path.join(args.data_dir, "testB"),
                                                 resize=args.resize, crop=args.crop,
                                                 batch_size=1, unaligned=args.unaligned,
-                                                device=device, num_workers=args.num_workers)
+                                                device=device, num_workers=args.num_workers, shuffle=False, test=True)
 
     if args.vis:
         if args.port:
