@@ -29,6 +29,7 @@ parser.add_argument('--save_n_img', default=5, type=int, help='number of images 
 parser.add_argument('--test_collage', default=False, action='store_true', help='also save A_gen, cyc, gt; otherwise just B_gen')
 parser.add_argument('--num_workers', default=0, type=int)
 parser.add_argument('--init_type', default='normal', type=str, help='initialization for weights for G and D')
+parser.add_argument('--suffix', default='', type=str, help='out dir suffix')
 # Optimization
 parser.add_argument('--lr', default=0.0002, type=float)
 parser.add_argument('--lr_decay_start', default=100, type=int, help='eppch to start lr decay')
@@ -65,7 +66,8 @@ if __name__ == "__main__":
         os.mkdir(args.out_dir)
 
     if args.mode == "train":
-        out_dir = os.path.join(args.out_dir, time.strftime("%m%d%H%M%S"))
+        out_dir = os.path.join(args.out_dir, "%s%s" % (time.strftime("%m%d%H%M%S"),
+                                                       "_"+args.suffix if len(args.suffix)!=0 else ""))
         os.mkdir(out_dir)
         out_dir_img = os.path.join(out_dir, "images")
         os.mkdir(out_dir_img)
