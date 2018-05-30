@@ -14,10 +14,13 @@ class CycleGANModel:
         self.args = args
 
         # Code (paper): G_A (G), G_B (F), D_A (D_Y), D_B (D_X)
-        # self.G_A = GeneratorJohnson()
-        # self.G_B = GeneratorJohnson()
-        self.G_A = GeneratorJohnson2(n_res_blocks=9)
-        self.G_B = GeneratorJohnson2(n_res_blocks=9)
+        if args.G == 'res6':
+            self.G_A = GeneratorJohnson()
+            self.G_B = GeneratorJohnson()
+        elif args.G == 'res9':
+            self.G_A = GeneratorJohnson2(n_res_blocks=9)
+            self.G_B = GeneratorJohnson2(n_res_blocks=9)
+
         self.D_A = DiscriminatorPatchGAN()
         self.D_B = DiscriminatorPatchGAN()
 

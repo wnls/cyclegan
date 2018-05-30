@@ -17,6 +17,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--unaligned', default=True, type=bool)
 parser.add_argument('--resize', default=286, type=int)
 parser.add_argument('--crop', default=256, type=int)
+parser.add_argument('--G', default='res6', type=str, help='res6|res9')
 # Training
 parser.add_argument('--device_id', default=0, type=int)
 parser.add_argument('--mode', default="train", type=str)
@@ -28,7 +29,7 @@ parser.add_argument('--eval_n', default=100, type=int, help='number of examples 
 parser.add_argument('--save_n_img', default=5, type=int, help='number of images to save at test time')
 parser.add_argument('--test_collage', default=False, action='store_true', help='also save A_gen, cyc, gt; otherwise just B_gen')
 parser.add_argument('--num_workers', default=0, type=int)
-parser.add_argument('--init_type', default='normal', type=str, help='initialization for weights for G and D')
+parser.add_argument('--init_type', default='normal', type=str, help='initialization for weights for G and D. normal|xavier|kaiming')
 parser.add_argument('--suffix', default='', type=str, help='out dir suffix')
 # Optimization
 parser.add_argument('--lr', default=0.0002, type=float)
