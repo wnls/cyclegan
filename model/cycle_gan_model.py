@@ -104,8 +104,10 @@ class CycleGANModel:
 
         # Identity loss
         if self.lambda_idt > 0:
-            loss_G_A_idt = self.idt_loss_fn(self.G_A(B), B) * self.lambda_B * self.lambda_idt
-            loss_G_B_idt = self.idt_loss_fn(self.G_B(A), A) * self.lambda_A * self.lambda_idt
+            A_idt = self.G_B(A)
+            B_idt = self.G_A(B)
+            loss_G_A_idt = self.idt_loss_fn(B_idt, B) * self.lambda_B * self.lambda_idt
+            loss_G_B_idt = self.idt_loss_fn(A_idt, A) * self.lambda_A * self.lambda_idt
         else:
             loss_G_A_idt = 0
             loss_G_B_idt = 0
@@ -163,8 +165,12 @@ class CycleGANModel:
 
         # save image
         if save:
-            self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt),
-                            out_dir_img, "train_ep_%d_A%d_B%d" % (epoch, index_A, index_B))
+            if self.lambda_idt > 0:
+                self.save_image((A, B_gen, A_cyc, A_idt, A_gt, B, A_gen, B_cyc, B_idt, B_gt),
+                                out_dir_img, "train_ep_%d_A%d_B%d" % (epoch, index_A, index_B), collage='idt')
+            else:
+                self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt),
+                                out_dir_img, "train_ep_%d_A%d_B%d" % (epoch, index_A, index_B), collage='basic')
 
         return {'G': loss_G,
                 'G_A': loss_G_A, 'Cyc_A': loss_cyc_A, 'G_A_idt': loss_G_A_idt,
@@ -187,8 +193,10 @@ class CycleGANModel:
 
             # Identity loss
             if self.lambda_idt > 0:
-                loss_G_A_idt = self.idt_loss_fn(self.G_A(B), B) * self.lambda_B * self.lambda_idt
-                loss_G_B_idt = self.idt_loss_fn(self.G_B(A), A) * self.lambda_A * self.lambda_idt
+                A_idt = self.G_B(A)
+                B_idt = self.G_A(B)
+                loss_G_A_idt = self.idt_loss_fn(B_idt, B) * self.lambda_B * self.lambda_idt
+                loss_G_B_idt = self.idt_loss_fn(A_idt, A) * self.lambda_A * self.lambda_idt
             else:
                 loss_G_A_idt = 0
                 loss_G_B_idt = 0
@@ -241,25 +249,38 @@ class CycleGANModel:
 
         # save image
         if save:
-            self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt),
-                            out_dir_img, "val_ep_%d_A%d_B%d" % (epoch, index_A, index_B))
+            if self.lambda_idt > 0:
+                self.save_image((A, B_gen, A_cyc, A_idt, A_gt, B, A_gen, B_cyc, B_idt, B_gt),
+                                out_dir_img, "val_ep_%d_A%d_B%d" % (epoch, index_A, index_B), collage='idt')
+            else:
+                self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt),
+                                out_dir_img, "val_ep_%d_A%d_B%d" % (epoch, index_A, index_B), collage='basic')
 
         return {'G': loss_G,
                 'G_A': loss_G_A, 'Cyc_A': loss_cyc_A, 'G_A_idt': loss_G_A_idt,
                 'G_B': loss_G_B, 'Cyc_B': loss_cyc_B, 'G_B_idt': loss_G_B_idt,
                 'D': loss_D, 'D_A': loss_D_A, 'D_B': loss_D_B}
 
-    def test(self, images, i, out_dir_img, collage=False):
+    def test(self, images, i, out_dir_img, collage='single'):
         A, B, A_gt, B_gt, index_A, index_B = images
         B_gen = self.G_A(A)
-        if collage:
+        if collage == 'single':
+            self.save_image(B_gen, out_dir_img, "test_%d" % (i+1), collage=collage)
+        elif collage == 'basic':
             A_gen = self.G_B(B)
             A_cyc = self.G_B(B_gen)
             B_cyc = self.G_A(A_gen)
+            self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt), out_dir_img,
+                            "test_%d" % (i + 1), collage=collage)
+        elif collage == 'idt':
+            A_gen = self.G_B(B)
+            A_cyc = self.G_B(B_gen)
+            B_cyc = self.G_A(A_gen)
+            B_idt = self.G_A(B)
+            A_idt = self.G_B(A)
 
-            self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt), out_dir_img, "test_%d" % (i+1))
-        else:
-            self.save_image(B_gen, out_dir_img, "test_%d" % (i+1), test=True)
+            self.save_image((A, B_gen, A_cyc, A_idt, A_gt, B, A_gen, B_cyc, B_idt, B_gt),
+                            out_dir_img, "test_%d" % (i+1), collage=collage)
 
     def compute_loss(self, A, B):
         B_gen = self.G_A(A)
@@ -307,52 +328,58 @@ class CycleGANModel:
                 'optimG': self.optimizer_G.state_dict(),
                 'optimD': self.optimizer_D.state_dict()}
 
-    def save_image(self, input, filepath, fname, test=False):
+    def save_image(self, input, filepath, fname, collage='basic'):
         """ input is a tuple of the images we want to compare """
-        # A, B_gen, A_cyc, B, A_gen, B_cyc = input
 
-
-        if test:
+        if collage == 'single': # single image
             B_gen= input
             img = self.tensor2image(B_gen)
             path = os.path.join(filepath, 'B_gen_%s.png' % fname)
             scipy.misc.imsave(path, img.squeeze().transpose(1,2,0))
             print('saved %s' % path)
-        else:
-            A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt = input
 
+        elif collage == 'basic':
+            A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt = input
             sources = torch.cat((A, B))
             gens = torch.cat((B_gen, A_gen))
             cycles = torch.cat((A_cyc, B_cyc))
             gts = torch.cat((A_gt, B_gt))
 
-            merged = self.tensor2image(self.merge_images(sources, gens, cycles, gts))
+            merged = self.tensor2image(self.merge_images([sources, gts, gens, cycles]))
 
             path = os.path.join(filepath, '%s.png' % fname)
             scipy.misc.imsave(path, merged)
             print('saved %s' % path)
+
+        elif collage == 'idt':
+            A, B_gen, A_cyc, A_idt, A_gt, B, A_gen, B_cyc, B_idt, B_gt = input
+
+            sources = torch.cat((A, B))
+            gens = torch.cat((B_gen, A_gen))
+            cycles = torch.cat((A_cyc, B_cyc))
+            idts = torch.cat((A_idt, B_idt))
+            gts = torch.cat((A_gt, B_gt))
+
+            merged = self.tensor2image(self.merge_images([sources, gts, gens, cycles, idts]))
+
+            path = os.path.join(filepath, '%s.png' % fname)
+            scipy.misc.imsave(path, merged)
+            print('saved %s' % path)
+
 
     def tensor2image(self, input):
         image_data = input.data
         image = 127.5 * (image_data.cpu().float().numpy() + 1.0)
         return image.astype(np.uint8)
 
-    def merge_images(self, sources, gens, cycles, gts):
-        row, _, h, w = sources.size()
-        # row, _, h, w = sources.shape
-        # row = int(np.sqrt(batch_size))
-        merged = torch.zeros(3, row * h, w * 4)
-        for idx, (s, gt, g, c) in enumerate(zip(sources, gts, gens, cycles)):
-            i = idx
-            # i = (idx + 1) // row
-            # j = idx % row
-            # merged[:, i * h:(i + 1) * h, (j * 2) * w:(j * 2 + 1) * w] = s
-            # merged[:, i * h:(i + 1) * h, (j*2+1) * w:(j * 2 + 2) * w] = t
-            # merged[:, i * h:(i + 1) * h, (j*2+2) * w:(j * 2 + 3) * w] = c
-            merged[:, i * h:(i + 1) * h, 0:w] = s
-            merged[:, i * h:(i + 1) * h, w:2 * w] = gt
-            merged[:, i * h:(i + 1) * h, 2 * w:3 * w] = g
-            merged[:, i * h:(i + 1) * h, 3 * w:4 * w] = c
+    def merge_images(self, li):
+        n_col = len(li)
+        row, _, h, w = li[0].size()
+        merged = torch.zeros(3, row * h, w * n_col)
+        for i, li_row in enumerate(zip(*li)):
+            for j in range(len(li_row)):
+                merged[:, i * h : (i + 1) * h, j*w : (j+1)*w] = li_row[j]
+
         return merged.permute(1, 2, 0)
 
 class ImageBuffer():
