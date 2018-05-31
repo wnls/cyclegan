@@ -58,9 +58,9 @@ class CycleGANModel:
             if self.init_type == 'normal':
                 init.normal_(m.weight.data, 0.0, 0.02)
             elif self.init_type == 'xavier':
-                init.xavier_normal(m.weight.data, gain=0.02)
+                init.xavier_normal_(m.weight.data, gain=0.02)
             elif self.init_type == 'kaiming':
-                init.kaiming_normal(m.weight.data, a=0, mode='fan_in')
+                init.kaiming_normal_(m.weight.data, a=0, mode='fan_in')
             else:
                 raise NotImplementedError('initialization method [%s] not implemented' % self.init_type)
         elif classname.find('BatchNorm2d') != -1:
