@@ -97,8 +97,14 @@ if __name__ == "__main__":
         os.mkdir(out_dir_img)
 
         # load data
-        test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "testA"),
-                                                os.path.join(args.data_dir, "testB"),
+        # test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "testA"),
+        #                                         os.path.join(args.data_dir, "testB"),
+        #                                         resize=args.resize, crop=args.crop,
+        #                                         batch_size=1, unaligned=args.unaligned,
+        #                                         device=device, num_workers=args.num_workers, shuffle=False, test=True)
+
+        test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "trainA"),
+                                                os.path.join(args.data_dir, "trainB"),
                                                 resize=args.resize, crop=args.crop,
                                                 batch_size=1, unaligned=args.unaligned,
                                                 device=device, num_workers=args.num_workers, shuffle=False, test=True)
@@ -293,12 +299,29 @@ if __name__ == "__main__":
 
     if args.mode == "test":
         print("\nEvaluating on test set...")
+        D_A = []
+        D_B = []
+        A_gt = []
         for i, images in enumerate(test_loader):
             if i >= args.save_n_img:
                 break
-            model.test(images, i, out_dir_img, args.test_collage)
+            score_D_A, score_D_B, score_A_gt = model.test(images, i, out_dir_img, args.test_collage)
+            score_D_A = round(float(score_D_A), 6)
+            score_D_B = round(float(score_D_B), 6)
+            score_A_gt = round(float(score_A_gt), 6)
+            D_A.append(score_D_A)
+            D_B.append(score_D_B)
+            A_gt.append(score_A_gt)
+        with open(os.path.join(out_dir, "d_scores.json"), "w") as f:
+            json.dump({"D_A": D_A, "D_B": D_B, "A_gt": A_gt}, f)
 
-        # test_loss = {}
+        #     score_A_gt = model.test(images, i, out_dir_img, args.test_collage)
+        #     score_A_gt = round(float(score_A_gt), 6)
+        #     A_gt.append(score_A_gt)
+        # with open(os.path.join(out_dir, "d_scores_gt.json"), "w") as f:
+        #     json.dump({"gt": A_gt}, f)
+
+            # test_loss = {}
         # for i, images in enumerate(test_loader):
         #     loss = model.eval(images)
         #
