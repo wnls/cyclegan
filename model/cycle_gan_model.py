@@ -274,24 +274,24 @@ class CycleGANModel:
             #     self.truecount += 1
             #     print('truecount %d' % self.truecount)
             #     print('img %d' % (i + 1))
+            if collage == 'single':
+                self.save_image(B_gen, out_dir_img, "test_%d" % (i+1), collage=collage)
+            elif collage == 'basic':
+                # A_gen = self.G_B(B)
+                A_cyc = self.G_B(B_gen)
+                B_cyc = self.G_A(A_gen)
+                self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt), out_dir_img,
+                                "test_%d" % (i + 1), collage=collage)
+            elif collage == 'idt':
+                # A_gen = self.G_B(B)
+                A_cyc = self.G_B(B_gen)
+                B_cyc = self.G_A(A_gen)
+                B_idt = self.G_A(B)
+                A_idt = self.G_B(A)
+
+                self.save_image((A, B_gen, A_cyc, A_idt, A_gt, B, A_gen, B_cyc, B_idt, B_gt),
+                                out_dir_img, "test_%d" % (i+1), collage=collage)
             return score_D_A, score_D_B, score_A_gt
-        # if collage == 'single':
-        #     self.save_image(B_gen, out_dir_img, "test_%d" % (i+1), collage=collage)
-        # elif collage == 'basic':
-        #     A_gen = self.G_B(B)
-        #     A_cyc = self.G_B(B_gen)
-        #     B_cyc = self.G_A(A_gen)
-        #     self.save_image((A, B_gen, A_cyc, A_gt, B, A_gen, B_cyc, B_gt), out_dir_img,
-        #                     "test_%d" % (i + 1), collage=collage)
-        # elif collage == 'idt':
-        #     A_gen = self.G_B(B)
-        #     A_cyc = self.G_B(B_gen)
-        #     B_cyc = self.G_A(A_gen)
-        #     B_idt = self.G_A(B)
-        #     A_idt = self.G_B(A)
-        #
-        #     self.save_image((A, B_gen, A_cyc, A_idt, A_gt, B, A_gen, B_cyc, B_idt, B_gt),
-        #                     out_dir_img, "test_%d" % (i+1), collage=collage)
 
     def compute_loss(self, A, B):
         B_gen = self.G_A(A)
