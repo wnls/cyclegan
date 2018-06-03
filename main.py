@@ -43,6 +43,7 @@ parser.add_argument('--beta1', default=0.5, type=float, help='momentum term of a
 parser.add_argument('--lambda_A', default=10.0, type=float, help='weight for cycle loss (A -> B -> A)')
 parser.add_argument('--lambda_B', default=10.0, type=float, help='weight for cycle loss (B -> A -> B)')
 parser.add_argument('--lambda_idt', default=0.5, type=float)
+parser.add_argument('--lambda_D', default=0.5, type=float, help='D scale')
 # Files
 parser.add_argument('--out_dir', default='./checkpoints', type=str)
 parser.add_argument('--data_dir', default='./datasets/maps/', type=str)

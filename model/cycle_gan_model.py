@@ -48,6 +48,7 @@ class CycleGANModel:
         self.lambda_A = args.lambda_A
         self.lambda_B = args.lambda_B
         self.lambda_idt = args.lambda_idt
+        self.lambda_D = args.lambda_D
 
         self.A_gen_buffer = ImageBuffer()
         self.B_gen_buffer = ImageBuffer()
@@ -147,7 +148,7 @@ class CycleGANModel:
         B_gen_pool = self.B_gen_buffer.push_and_pop(B_gen).detach()
         loss_D_A_fake = self.gan_loss(self.D_A(B_gen_pool), 0)
 
-        loss_D_A = (loss_D_A_real + loss_D_A_fake) * 0.5
+        loss_D_A = (loss_D_A_real + loss_D_A_fake) * self.lambda_D
 
         # D_B real loss
         loss_D_B_real = self.gan_loss(self.D_B(A), 1)
@@ -156,7 +157,7 @@ class CycleGANModel:
         A_gen_pool = self.A_gen_buffer.push_and_pop(A_gen).detach()
         loss_D_B_fake = self.gan_loss(self.D_B(A_gen_pool), 0)
 
-        loss_D_B = (loss_D_B_real + loss_D_B_fake) * 0.5
+        loss_D_B = (loss_D_B_real + loss_D_B_fake) * self.lambda_D
 
         #TODO can add?
         loss_D = loss_D_A + loss_D_B
@@ -231,7 +232,7 @@ class CycleGANModel:
             B_gen_pool = self.B_gen_buffer.push_and_pop(B_gen).detach()
             loss_D_A_fake = self.gan_loss(self.D_A(B_gen_pool), 0)
 
-            loss_D_A = (loss_D_A_real + loss_D_A_fake) * 0.5
+            loss_D_A = (loss_D_A_real + loss_D_A_fake) * self.lambda_D
 
             # D_B real loss
             loss_D_B_real = self.gan_loss(self.D_B(A), 1)
@@ -240,7 +241,7 @@ class CycleGANModel:
             A_gen_pool = self.A_gen_buffer.push_and_pop(A_gen).detach()
             loss_D_B_fake = self.gan_loss(self.D_B(A_gen_pool), 0)
 
-            loss_D_B = (loss_D_B_real + loss_D_B_fake) * 0.5
+            loss_D_B = (loss_D_B_real + loss_D_B_fake) * self.lambda_D
 
             # TODO can add?
             loss_D = loss_D_A + loss_D_B
