@@ -92,8 +92,8 @@ if __name__ == "__main__":
                                                batch_size=1, unaligned=args.unaligned, #TODO val batch size
                                                device=device, num_workers=args.num_workers, test=True)
     if args.mode == "test":
-        # out_dir = os.path.dirname(args.pretrain_path)
-        # out_dir_img = os.path.join(out_dir, "images", "test")
+        out_dir = os.path.dirname(args.pretrain_path)
+        out_dir_img = os.path.join(out_dir, "images", "test")
         # os.mkdir(out_dir_img)
 
         # load data
