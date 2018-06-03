@@ -26,7 +26,7 @@ parser.add_argument('--print_every_train', default=100, type=int)
 parser.add_argument('--print_every_val', default=200, type=int)
 parser.add_argument('--save_every_epoch', default=20, type=int)
 parser.add_argument('--eval_n', default=100, type=int, help='number of examples from val set to evaluate on each epoch')
-parser.add_argument('--save_n_img', default=5, type=int, help='number of images to save at test time')
+parser.add_argument('--save_n_img', default=10000, type=int, help='number of images to save at test time')
 parser.add_argument('--test_collage', default='single', type=str, help='single|basic|idt. what to output at test')
 parser.add_argument('--num_workers', default=0, type=int)
 parser.add_argument('--init_type', default='normal', type=str, help='normal|xavier|kaiming. initialization for weights for G and D')
@@ -92,9 +92,9 @@ if __name__ == "__main__":
                                                batch_size=1, unaligned=args.unaligned, #TODO val batch size
                                                device=device, num_workers=args.num_workers, test=True)
     if args.mode == "test":
-        out_dir = os.path.dirname(args.pretrain_path)
-        out_dir_img = os.path.join(out_dir, "images", "test")
-        os.mkdir(out_dir_img)
+        # out_dir = os.path.dirname(args.pretrain_path)
+        # out_dir_img = os.path.join(out_dir, "images", "test")
+        # os.mkdir(out_dir_img)
 
         # load data
         # test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "testA"),
