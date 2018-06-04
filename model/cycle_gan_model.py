@@ -20,6 +20,9 @@ class CycleGANModel:
         elif args.G == 'res9':
             self.G_A = GeneratorJohnson2(n_res_blocks=9)
             self.G_B = GeneratorJohnson2(n_res_blocks=9)
+        elif args.G == 'unet':
+            self.G_A = Unet(filter_num=64, concat=False)
+            self.G_B = Unet(filter_num=64, concat=False)
 
         self.D_A = DiscriminatorPatchGAN()
         self.D_B = DiscriminatorPatchGAN()

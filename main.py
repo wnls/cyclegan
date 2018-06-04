@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--unaligned', default=True, type=bool)
 parser.add_argument('--resize', default=286, type=int)
 parser.add_argument('--crop', default=256, type=int)
-parser.add_argument('--G', default='res6', type=str, help='res6|res9')
+parser.add_argument('--G', default='res6', type=str, help='res6|res9|unet')
 # Training
 parser.add_argument('--device_id', default=0, type=int)
 parser.add_argument('--mode', default="train", type=str)

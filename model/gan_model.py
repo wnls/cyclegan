@@ -235,5 +235,97 @@ class GeneratorJohnson2(Generator):
     def forward(self, input):
         return self.model(input)
 
+def UnetBlock(in_channel, out_channel, norm, relu, dropout=False, encoding=True):
+    block = nn.Sequential()
+    norm_layer, relu_layer = norm_relu_layer(out_channel, norm, relu)
+    block.add_module('relu', relu_layer)
+    if encoding:
+        block.add_module('conv', nn.Conv2d(in_channel, out_channel, 4, 2, 1, bias=False))
+    else:
+        block.add_module('deconv', nn.ConvTranspose2d(in_channel, out_channel, 4, 2, 1, bias=False))
+        block.add_module('norm', norm_layer)
+    if dropout:
+        block.add_module('dropout', nn.Dropout2d(0.5, inplace=True))
+    return block
+
+class Unet(Generator):
+    """
+    Generator with 8 encoding blocks, 8 decoding blocks and skip connections.
+    """
+    def __init__(self, image_channel=3, filter_num=64, norm='batchnorm', concat=True):
+        super().__init__('Unet')
+
+        self.concat = concat
+
+        # encoding layers
+        self.E_layer1 = nn.Conv2d(image_channel, filter_num,4, 2, 1, bias=False)
+        self.E_layer2 = UnetBlock(filter_num, filter_num*2, norm=norm, relu=0.2, dropout=False, encoding=True)
+        self.E_layer3 = UnetBlock(filter_num*2, filter_num*4, norm=norm, relu=0.2, dropout=False, encoding=True)
+        self.E_layer4 = UnetBlock(filter_num*4, filter_num*8, norm=norm, relu=0.2, dropout=False, encoding=True)
+        self.E_layer5 = UnetBlock(filter_num*8, filter_num*8, norm=norm, relu=0.2, dropout=False, encoding=True)
+        self.E_layer6 = UnetBlock(filter_num*8, filter_num*8, norm=norm, relu=0.2, dropout=False, encoding=True)
+        self.E_layer7 = UnetBlock(filter_num*8, filter_num*8, norm=norm, relu=0.2, dropout=False, encoding=True)
+        self.E_layer8 = UnetBlock(filter_num*8, filter_num*8, norm=None, relu=0.2, dropout=False, encoding=True)
+
+        # decoding layers
+        self.D_layer8 = UnetBlock(filter_num*8, filter_num*8, norm=norm, relu=None, dropout=True, encoding=False)
+        if concat:
+            self.D_layer7 = UnetBlock(filter_num*8*2, filter_num*8, norm=norm, relu=None, dropout=True, encoding=False)
+            self.D_layer6 = UnetBlock(filter_num*8*2, filter_num*8, norm=norm, relu=None, dropout=True, encoding=False)
+            self.D_layer5 = UnetBlock(filter_num*8*2, filter_num*8, norm=norm, relu=None, dropout=False, encoding=False)
+            self.D_layer4 = UnetBlock(filter_num*8*2, filter_num*4, norm=norm, relu=None, dropout=False, encoding=False)
+            self.D_layer3 = UnetBlock(filter_num*4*2, filter_num*2, norm=norm, relu=None, dropout=False, encoding=False)
+            self.D_layer2 = UnetBlock(filter_num*2*2, filter_num, norm=norm, relu=None, dropout=False, encoding=False)
+        else:
+            self.D_layer7 = UnetBlock(filter_num*8, filter_num*8, norm=norm, relu=None, dropout=True,encoding=False)
+            self.D_layer6 = UnetBlock(filter_num*8, filter_num*8, norm=norm, relu=None, dropout=True, encoding=False)
+            self.D_layer5 = UnetBlock(filter_num*8, filter_num*8, norm=norm, relu=None, dropout=False, encoding=False)
+            self.D_layer4 = UnetBlock(filter_num*8, filter_num*4, norm=norm, relu=None, dropout=False, encoding=False)
+            self.D_layer3 = UnetBlock(filter_num*4, filter_num*2, norm=norm, relu=None, dropout=False, encoding=False)
+            self.D_layer2 = UnetBlock(filter_num*2, filter_num, norm=norm, relu=None, dropout=False, encoding=False)
+
+        self.D_layer1 = nn.Sequential()
+        self.D_layer1.add_module('relu', nn.ReLU(inplace=True))
+        if concat:
+            self.D_layer1.add_module('deconv', nn.ConvTranspose2d(filter_num*2, image_channel, 4, 2, 1, bias=False))
+        else:
+            self.D_layer1.add_module('deconv', nn.ConvTranspose2d(filter_num, image_channel, 4, 2, 1, bias=False))
+        self.D_layer1.add_module('tanh', nn.Tanh())
 
 
+    def forward(self, input):
+        """
+        :param input: (N x channels x H x W)
+        :return: output: (N x channels x H x W) with numbers of range [-1, 1] (since we use tanh())
+        """
+        # 8 layers encoding
+        encode1 = self.E_layer1(input)
+        encode2 = self.E_layer2(encode1)
+        encode3 = self.E_layer3(encode2)
+        encode4 = self.E_layer4(encode3)
+        encode5 = self.E_layer5(encode4)
+        encode6 = self.E_layer6(encode5)
+        encode7 = self.E_layer7(encode6)
+        encode8 = self.E_layer8(encode7)
+
+        # 8 layers of decoding
+        if self.concat:
+            decode8 = self.D_layer8(encode8)
+            decode7 = self.D_layer7(torch.cat([decode8, encode7], 1))
+            decode6 = self.D_layer6(torch.cat([decode7, encode6], 1))
+            decode5 = self.D_layer5(torch.cat([decode6, encode5], 1))
+            decode4 = self.D_layer4(torch.cat([decode5, encode4], 1))
+            decode3 = self.D_layer3(torch.cat([decode4, encode3], 1))
+            decode2 = self.D_layer2(torch.cat([decode3, encode2], 1))
+            output = self.D_layer1(torch.cat([decode2, encode1], 1))
+        else:
+            decode8 = self.D_layer8(encode8)
+            decode7 = self.D_layer7(decode8.add_(encode7))
+            decode6 = self.D_layer6(decode7.add_(encode6))
+            decode5 = self.D_layer5(decode6.add_(encode5))
+            decode4 = self.D_layer4(decode5.add_(encode4))
+            decode3 = self.D_layer3(decode4.add_(encode3))
+            decode2 = self.D_layer2(decode3.add_(encode2))
+            output = self.D_layer1(decode2.add_(encode1))
+
+        return output
