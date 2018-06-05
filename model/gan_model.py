@@ -164,6 +164,33 @@ class DiscriminatorPatchGAN(Discriminator):
         """
         return self.model(input)
 
+class DeepDiscriminatorPatchGAN(Discriminator):
+    """
+    The Discriminator Architecture used in < Image-to-Image Translation with Conditional Adversarial
+    Networks > by Philip Isola, et al.
+    """
+
+    def __init__(self, image_channel=3, kernel_size=4, use_bias=True, norm='instancenorm', sigmoid=False):
+        super().__init__('PatchGAN')
+        model = []
+        model += [Conv_Norm_ReLU(image_channel, 64, kernel_size, padding=1, stride=2, bias=use_bias, relu=0.2, norm=None), # C64
+                  Conv_Norm_ReLU(64, 128, kernel_size, padding=1, stride=2, bias=use_bias, relu=0.2, norm=norm), # C128
+                  Conv_Norm_ReLU(128, 256, kernel_size, padding=1, stride=2, bias=use_bias, relu=0.2, norm=norm), # C256
+                  Conv_Norm_ReLU(256, 512, kernel_size, padding=1, bias=use_bias, relu=0.2, norm=norm), # C512
+                  Conv_Norm_ReLU(256, 512, kernel_size, padding=1, bias=use_bias, relu=0.2, norm=norm), # C512
+                  Conv_Norm_ReLU(256, 512, kernel_size, padding=1, bias=use_bias, relu=0.2, norm=norm), # C512
+                  nn.Conv2d(512, 1, kernel_size, padding=1, bias=use_bias)
+                  ]
+        if sigmoid:
+            model += [nn.Sigmoid()]
+        self.model = nn.Sequential(*model)
+
+    def forward(self, input):
+        """
+        :param input: (N x channels x H x W)
+        :return: output: (N x channels x H/16 x W/16) of discrimination values
+        """
+        return self.model(input)
 
 class DualDiscriminatorPatchGAN(Discriminator):
     """
@@ -171,10 +198,10 @@ class DualDiscriminatorPatchGAN(Discriminator):
     Networks > by Philip Isola, et al.
     """
 
-    def __init__(self, p_lambda=0.5, image_channel=3, kernel_size=4, use_bias=True, norm='instancenorm', sigmoid=False):
+    def __init__(self, gan_type=DiscriminatorPatchGAN, p_lambda=0.5, image_channel=3, kernel_size=4, use_bias=True, norm='instancenorm', sigmoid=False):
         super().__init__('DualDiscriminatorPatchGAN')
-        self.D1 = DiscriminatorPatchGAN(image_channel, kernel_size, use_bias, norm, sigmoid)
-        self.D2 = DiscriminatorPatchGAN(image_channel, kernel_size, use_bias, norm, sigmoid)
+        self.D1 = gan_type(image_channel, kernel_size, use_bias, norm, sigmoid)
+        self.D2 = gan_type(image_channel, kernel_size, use_bias, norm, sigmoid)
         self.p_lambda = p_lambda
 
     def forward(self, input):

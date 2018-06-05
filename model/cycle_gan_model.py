@@ -27,9 +27,15 @@ class CycleGANModel:
         if args.D == 'vanilla':
             self.D_A = DiscriminatorPatchGAN()
             self.D_B = DiscriminatorPatchGAN()
+        elif args.D == 'deep':
+            self.D_A = DeepDiscriminatorPatchGAN()
+            self.D_B = DeepDiscriminatorPatchGAN()
         elif args.D == 'dual':
-            self.D_A = DualDiscriminatorPatchGAN()
-            self.D_B = DualDiscriminatorPatchGAN()
+            self.D_A = DualDiscriminatorPatchGAN(gan_type=DiscriminatorPatchGAN, p_lambda=0.5)
+            self.D_B = DualDiscriminatorPatchGAN(gan_type=DiscriminatorPatchGAN, p_lambda=0.5)
+        elif args.D == 'deepdual':
+            self.D_A = DualDiscriminatorPatchGAN(gan_type=DeepDiscriminatorPatchGAN, p_lambda=0.5)
+            self.D_B = DualDiscriminatorPatchGAN(gan_type=DeepDiscriminatorPatchGAN, p_lambda=0.5)
 
         self.optimizer_G = torch.optim.Adam(itertools.chain(self.G_A.parameters(),
                                             self.G_B.parameters()),
