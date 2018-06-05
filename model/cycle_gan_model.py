@@ -24,8 +24,12 @@ class CycleGANModel:
             self.G_A = Unet(filter_num=64, concat=args.concat)
             self.G_B = Unet(filter_num=64, concat=args.concat)
 
-        self.D_A = DiscriminatorPatchGAN()
-        self.D_B = DiscriminatorPatchGAN()
+        if args.D == 'vanilla':
+            self.D_A = DiscriminatorPatchGAN()
+            self.D_B = DiscriminatorPatchGAN()
+        elif args.D == 'dual':
+            self.D_A = DualDiscriminatorPatchGAN()
+            self.D_B = DualDiscriminatorPatchGAN()
 
         self.optimizer_G = torch.optim.Adam(itertools.chain(self.G_A.parameters(),
                                             self.G_B.parameters()),

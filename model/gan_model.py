@@ -165,6 +165,26 @@ class DiscriminatorPatchGAN(Discriminator):
         return self.model(input)
 
 
+class DualDiscriminatorPatchGAN(Discriminator):
+    """
+    The Discriminator Architecture used in < Image-to-Image Translation with Conditional Adversarial
+    Networks > by Philip Isola, et al.
+    """
+
+    def __init__(self, p_lambda=0.5, image_channel=3, kernel_size=4, use_bias=True, norm='instancenorm', sigmoid=False):
+        super().__init__('DualDiscriminatorPatchGAN')
+        self.D1 = DiscriminatorPatchGAN(image_channel, kernel_size, use_bias, norm, sigmoid)
+        self.D2 = DiscriminatorPatchGAN(image_channel, kernel_size, use_bias, norm, sigmoid)
+        self.p_lambda = p_lambda
+
+    def forward(self, input):
+        """
+        :param input: (N x channels x H x W)
+        :return: output: (N x channels x H/16 x W/16) of discrimination values
+        """
+        return self.p_lambda * self.D1(input) + (1 - self.p_lambda) * self.D2(input)
+
+
 class ResidualBlock2(nn.Module):
     def __init__(self, in_features, norm_layer=nn.InstanceNorm2d):
         super(ResidualBlock2, self).__init__()
