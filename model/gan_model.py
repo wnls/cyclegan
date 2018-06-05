@@ -198,10 +198,14 @@ class DualDiscriminatorPatchGAN(Discriminator):
     Networks > by Philip Isola, et al.
     """
 
-    def __init__(self, gan_type=DiscriminatorPatchGAN, p_lambda=0.5, image_channel=3, kernel_size=4, use_bias=True, norm='instancenorm', sigmoid=False):
+    def __init__(self, p_lambda=0.5, deep=False, image_channel=3, kernel_size=4, use_bias=True, norm='instancenorm', sigmoid=False):
         super().__init__('DualDiscriminatorPatchGAN')
-        self.D1 = gan_type(image_channel, kernel_size, use_bias, norm, sigmoid)
-        self.D2 = gan_type(image_channel, kernel_size, use_bias, norm, sigmoid)
+        if deep:
+            self.D1 = DeepDiscriminatorPatchGAN(image_channel, kernel_size, use_bias, norm, sigmoid)
+            self.D2 = DeepDiscriminatorPatchGAN(image_channel, kernel_size, use_bias, norm, sigmoid)
+        else:
+            self.D1 = DiscriminatorPatchGAN(image_channel, kernel_size, use_bias, norm, sigmoid)
+            self.D2 = DiscriminatorPatchGAN(image_channel, kernel_size, use_bias, norm, sigmoid)
         self.p_lambda = p_lambda
 
     def forward(self, input):

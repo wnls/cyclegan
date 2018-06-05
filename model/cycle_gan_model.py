@@ -31,11 +31,11 @@ class CycleGANModel:
             self.D_A = DeepDiscriminatorPatchGAN()
             self.D_B = DeepDiscriminatorPatchGAN()
         elif args.D == 'dual':
-            self.D_A = DualDiscriminatorPatchGAN(gan_type=DiscriminatorPatchGAN, p_lambda=0.5)
-            self.D_B = DualDiscriminatorPatchGAN(gan_type=DiscriminatorPatchGAN, p_lambda=0.5)
+            self.D_A = DualDiscriminatorPatchGAN(p_lambda=0.5, deep=False)
+            self.D_B = DualDiscriminatorPatchGAN(p_lambda=0.5, deep=False)
         elif args.D == 'deepdual':
-            self.D_A = DualDiscriminatorPatchGAN(gan_type=DeepDiscriminatorPatchGAN, p_lambda=0.5)
-            self.D_B = DualDiscriminatorPatchGAN(gan_type=DeepDiscriminatorPatchGAN, p_lambda=0.5)
+            self.D_A = DualDiscriminatorPatchGAN(p_lambda=0.5, deep=True)
+            self.D_B = DualDiscriminatorPatchGAN(p_lambda=0.5, deep=True)
 
         self.optimizer_G = torch.optim.Adam(itertools.chain(self.G_A.parameters(),
                                             self.G_B.parameters()),
