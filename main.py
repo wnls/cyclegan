@@ -19,7 +19,7 @@ parser.add_argument('--resize', default=286, type=int)
 parser.add_argument('--crop', default=256, type=int)
 parser.add_argument('--G', default='res6', type=str, help='res6|res9|unet')
 parser.add_argument('--D', default='vanilla', type=str, help='vanilla|dual|deep|deepdual')
-parser.add_argument('--concat', default=True, type=bool, help='concatenate or add in skip connection')
+parser.add_argument('--concat', default=True, action='store_false', help='concatenate or add in skip connection')
 # Training
 parser.add_argument('--device_id', default=0, type=int)
 parser.add_argument('--mode', default="train", type=str, help='train|test|gen-val|gen-train')
