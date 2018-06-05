@@ -22,7 +22,7 @@ parser.add_argument('--D', default='vanilla', type=str, help='vanilla|dual')
 parser.add_argument('--concat', default=True, type=bool, help='concatenate or add in skip connection')
 # Training
 parser.add_argument('--device_id', default=0, type=int)
-parser.add_argument('--mode', default="train", type=str)
+parser.add_argument('--mode', default="train", type=str, help='train|test|gen-val|gen-train')
 parser.add_argument('--pretrain_path', default='', type=str)
 parser.add_argument('--print_every_train', default=100, type=int)
 parser.add_argument('--print_every_val', default=200, type=int)
@@ -97,11 +97,42 @@ if __name__ == "__main__":
     if args.mode == "test":
         out_dir = os.path.dirname(args.pretrain_path)
         out_dir_img = os.path.join(out_dir, "images", "test")
-        os.mkdir(out_dir_img)
+        try:
+            os.mkdir(out_dir_img)
+        except OSError:
+            pass
 
         # load data
         test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "testA"),
                                                 os.path.join(args.data_dir, "testB"),
+                                                resize=args.resize, crop=args.crop,
+                                                batch_size=1, unaligned=args.unaligned,
+                                                device=device, num_workers=args.num_workers, shuffle=False, test=True)
+    if args.mode == "gen-train":
+        out_dir = os.path.dirname(args.pretrain_path)
+        out_dir_img = os.path.join(out_dir, "images", "train")
+        try:
+            os.mkdir(out_dir_img)
+        except OSError:
+            pass
+
+        # load data
+        test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "trainA"),
+                                                os.path.join(args.data_dir, "trainB"),
+                                                resize=args.resize, crop=args.crop,
+                                                batch_size=1, unaligned=args.unaligned,
+                                                device=device, num_workers=args.num_workers, shuffle=False, test=True)
+    if args.mode == "gen-val":
+        out_dir = os.path.dirname(args.pretrain_path)
+        out_dir_img = os.path.join(out_dir, "images", "val")
+        try:
+            os.mkdir(out_dir_img)
+        except OSError:
+            pass
+
+        # load data
+        test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "valA"),
+                                                os.path.join(args.data_dir, "valB"),
                                                 resize=args.resize, crop=args.crop,
                                                 batch_size=1, unaligned=args.unaligned,
                                                 device=device, num_workers=args.num_workers, shuffle=False, test=True)
