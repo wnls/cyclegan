@@ -177,8 +177,8 @@ class DeepDiscriminatorPatchGAN(Discriminator):
                   Conv_Norm_ReLU(64, 128, kernel_size, padding=1, stride=2, bias=use_bias, relu=0.2, norm=norm), # C128
                   Conv_Norm_ReLU(128, 256, kernel_size, padding=1, stride=2, bias=use_bias, relu=0.2, norm=norm), # C256
                   Conv_Norm_ReLU(256, 512, kernel_size, padding=1, bias=use_bias, relu=0.2, norm=norm), # C512
-                  Conv_Norm_ReLU(256, 512, kernel_size, padding=1, bias=use_bias, relu=0.2, norm=norm), # C512
-                  Conv_Norm_ReLU(256, 512, kernel_size, padding=1, bias=use_bias, relu=0.2, norm=norm), # C512
+                  Conv_Norm_ReLU(512, 512, kernel_size, padding=1, bias=use_bias, relu=0.2, norm=norm), # C512
+                  Conv_Norm_ReLU(512, 512, kernel_size, padding=1, bias=use_bias, relu=0.2, norm=norm), # C512
                   nn.Conv2d(512, 1, kernel_size, padding=1, bias=use_bias)
                   ]
         if sigmoid:
