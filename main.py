@@ -97,17 +97,17 @@ if __name__ == "__main__":
         # os.mkdir(out_dir_img)
 
         # load data
-        # test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "testA"),
-        #                                         os.path.join(args.data_dir, "testB"),
-        #                                         resize=args.resize, crop=args.crop,
-        #                                         batch_size=1, unaligned=args.unaligned,
-        #                                         device=device, num_workers=args.num_workers, shuffle=False, test=True)
-
-        test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "trainA"),
-                                                os.path.join(args.data_dir, "trainB"),
+        test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "testA"),
+                                                os.path.join(args.data_dir, "testB"),
                                                 resize=args.resize, crop=args.crop,
                                                 batch_size=1, unaligned=args.unaligned,
                                                 device=device, num_workers=args.num_workers, shuffle=False, test=True)
+
+        # test_loader = dataloader.get_dataloader(os.path.join(args.data_dir, "trainA"),
+        #                                         os.path.join(args.data_dir, "trainB"),
+        #                                         resize=args.resize, crop=args.crop,
+        #                                         batch_size=1, unaligned=args.unaligned,
+        #                                         device=device, num_workers=args.num_workers, shuffle=False, test=True)
 
     if args.vis:
         if args.port:
@@ -312,7 +312,7 @@ if __name__ == "__main__":
             D_A.append(score_D_A)
             D_B.append(score_D_B)
             A_gt.append(score_A_gt)
-        with open(os.path.join(out_dir, "d_scores.json"), "w") as f:
+        with open(os.path.join(out_dir, "d_scores_test.json"), "w") as f:
             json.dump({"D_A": D_A, "D_B": D_B, "A_gt": A_gt}, f)
 
         #     score_A_gt = model.test(images, i, out_dir_img, args.test_collage)
